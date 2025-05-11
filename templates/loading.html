@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mach24 - Starting Up</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #0c0e16;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .loading-container {
+            text-align: center;
+            max-width: 600px;
+            padding: 20px;
+        }
+        
+        .logo {
+            width: 180px;
+            height: 180px;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+        
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            color: #b3b7d1;
+            line-height: 1.5;
+        }
+        
+        .loading-bar {
+            width: 300px;
+            height: 6px;
+            background-color: #1e2235;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            width: 0%;
+            background-color: #4466ee;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .loading-text {
+            font-size: 0.9rem;
+            color: #8b90a9;
+            margin-top: 5px;
+            min-height: 20px;
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            background-color: rgba(68, 102, 238, 0.3);
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="loading-container">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Mach24 Logo" class="logo">
+        <h1>Mach24 System</h1>
+        <p>Initializing sensor data collection and visualization environment...</p>
+        
+        <div class="loading-bar">
+            <div class="loading-progress" id="progress"></div>
+        </div>
+        <div class="loading-text" id="status-text">Connecting to database...</div>
+    </div>
+    
+    <script>
+        // Create background particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Random size between 3 and 15px
+                const size = Math.random() * 12 + 3;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Random position
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Random opacity
+                particle.style.opacity = Math.random() * 0.5 + 0.1;
+                
+                // Random animation duration and delay
+                const duration = Math.random() * 40 + 10;
+                const delay = Math.random() * 5;
+                particle.style.animation = `float ${duration}s ${delay}s infinite ease-in-out`;
+                
+                container.appendChild(particle);
+            }
+        }
+        
+        // Add floating animation to the stylesheet
+        function addFloatingAnimation() {
+            const styleSheet = document.createElement('style');
+            styleSheet.textContent = `
+                @keyframes float {
+                    0% { transform: translate(0, 0); }
+                    25% { transform: translate(${Math.random() * 30}px, ${Math.random() * 30}px); }
+                    50% { transform: translate(${Math.random() * -30}px, ${Math.random() * 30}px); }
+                    75% { transform: translate(${Math.random() * -30}px, ${Math.random() * -30}px); }
+                    100% { transform: translate(0, 0); }
+                }
+            `;
+            document.head.appendChild(styleSheet);
+        }
+        
+        // Simulate loading steps
+        async function simulateLoading() {
+            const progress = document.getElementById('progress');
+            const statusText = document.getElementById('status-text');
+            const steps = [
+                { text: "Initializing system...", duration: 800, progress: 10 },
+                { text: "Connecting to database...", duration: 1200, progress: 30 },
+                { text: "Loading sensor configurations...", duration: 900, progress: 50 },
+                { text: "Preparing visualization environment...", duration: 1500, progress: 70 },
+                { text: "Loading data models...", duration: 1000, progress: 85 },
+                { text: "System ready!", duration: 800, progress: 100 }
+            ];
+            
+            for (const step of steps) {
+                statusText.textContent = step.text;
+                progress.style.width = `${step.progress}%`;
+                await new Promise(resolve => setTimeout(resolve, step.duration));
+            }
+            
+            // Set cookie to mark app as loaded
+            document.cookie = "app_loaded=true; path=/; max-age=31536000"; // 1 year
+            
+            // Redirect to main app after loading
+            setTimeout(() => {
+                window.location.href = "/";
+            }, 1000);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            addFloatingAnimation();
+            createParticles();
+            simulateLoading();
+        });
+    </script>
+</body>
+</html>

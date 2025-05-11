@@ -9,7 +9,7 @@ import logging
 import threading
 from datetime import datetime
 
-from flask import Flask, jsonify, render_template, Response, send_from_directory
+from flask import Flask, jsonify, render_template, Response, send_from_directory, redirect, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import serial
@@ -25,17 +25,17 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SECRET_KEY'] = 'mach24_secret_key'
 
-# Define the absolute path to node_modules
-NODE_MODULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'node_modules')
+# # Define the absolute path to node_modules
+# NODE_MODULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'node_modules')
 
-@app.route('/node_modules/<path:filename>')
-def serve_node_modules(filename):
-    """Serve files from node_modules directory."""
-    try:
-        return send_from_directory(NODE_MODULES_PATH, filename)
-    except Exception as e:
-        logger.error(f"Error serving node_modules: {e}")
-        return f"File not found: {filename}", 404
+# @app.route('/node_modules/<path:filename>')
+# def serve_node_modules(filename):
+#     """Serve files from node_modules directory."""
+#     try:
+#         return send_from_directory(NODE_MODULES_PATH, filename)
+#     except Exception as e:
+#         logger.error(f"Error serving node_modules: {e}")
+#         return f"File not found: {filename}", 404
 
 # Configure the SQLite database-------------------------
 # Create database directory if it doesn't exist
@@ -369,9 +369,27 @@ def serial_communication():
 
 # ========= Routes =========
 
+@app.route('/loading')
+def loading_screen():
+    """Display a loading screen before launching the app."""
+    return render_template('loading.html')
+
+@app.route('/reset_loading')
+def reset_loading():
+    """Reset the loading screen flag (for testing)."""
+    response = redirect('/loading')
+    response.set_cookie('app_loaded', '', expires=0)
+    return response
+
 @app.route('/')
 def index():
-    """Render the main index page."""
+    """Render the main index page or redirect to loading screen on first visit."""
+    # Check if this is first visit
+    first_visit = request.cookies.get('app_loaded') != 'true'
+    
+    if first_visit:
+        return redirect('/loading')
+    
     logger.info(f"Index page accessed. Connection status: {connection_status}")
     return render_template('index.html')
 

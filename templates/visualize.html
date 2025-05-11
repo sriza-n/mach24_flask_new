@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Visualization</title>
+    <!-- <link rel="stylesheet" href="static\css\style.css" /> -->
+    <!-- Use CDN for ECharts -->
+    <script src="static\lib\echarts.min.js"></script>
+    <!-- <script type="text/javascript" src="static\js\visualize.js"></script> -->
+    <script src="static\lib\bootstrap.bundle.min.js"></script>
+    <link href="static\lib\bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        .container-fluid {
+            min-height: 100vh;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .row {
+            flex: 1;
+            margin: 0;
+            padding: 0;
+        }
+
+        .col-lg-6 {
+            padding: 0;
+            height: 100%;
+        } */
+
+        #pressureChart,
+        #newton,
+        #temperature,
+        #video-container {
+            width: 100%;
+            height: 360px;
+            position: relative;
+            left: 'center';
+            top: 'middle';
+        }
+
+        /* #controlBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        } */
+        img {
+            overflow-clip-margin: content-box;
+            overflow: clip;
+        }
+
+        img[style] {
+            width: 100%;
+            aspect-ratio: auto 559 / 314;
+            height: 375px;
+        }
+
+        /* element.style {
+        display: block;
+        user-select: none;
+        -webkit-user-select: none;
+        margin: auto;
+        background-color: hsl(0, 0%, 25%); */
+        /* } */
+    </style>
+</head>
+
+<body>
+
+    <div class="container-fluid" data-bs-theme="dark">
+        <div class="row justify-content-center">
+            <img src="static/assets/mach24.png" alt="Mach24 Orbitals" class="hero-image img-fluid mb-lg-0"
+                style="height: 50px; width: auto; object-fit: contain;" id="controlBtn">
+        </div>
+        <div class="row justify-content-evenly">
+            <div class="col-lg-6" style="border-right: 2px solid rgb(0, 0, 0); border-bottom: 2px solid rgb(0, 0, 0);">
+                <div id="pressureChart"></div>
+            </div>
+            <div class="col-lg-6" style="border-right: 2px solid rgb(0, 0, 0); border-bottom: 2px solid rgb(0, 0, 0);">
+                <div id="newton"></div>
+            </div>
+        </div>
+        <div class="row justify-content-evenly">
+            <div class="col-lg-6" style="border-right: 2px solid rgb(0, 0, 0); border-bottom: 2px solid rgb(0, 0, 0);">
+                <div id="temperature"></div>
+            </div>
+            <div class="col-lg-6" style="border-right: 2px solid rgb(0, 0, 0); border-bottom: 2px solid rgb(0, 0, 0);">
+                <div id="video-container">
+                    <img class="responsive-video"
+                        style="display: block; user-select: none; -webkit-user-select: none; margin: auto; background-color: hsl(0, 0%, 25%);"
+                        src="http://192.168.1.113:8080/video"
+                        onerror="this.onerror=null; this.src='error-placeholder.png'; this.classList.add('stream-error');">
+                    <div class="error-message" style="display:none">
+                        Video stream not available
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- <div id="pressureChart" ></div> -->
+    <!-- <button id="controlBtn">Pause</button> -->
+</body>
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const chartDom1 = document.getElementById('pressureChart');
+        const chartDom2 = document.getElementById('newton');
+        const chartDom3 = document.getElementById('temperature');
+
+        if (!chartDom2) {
+            console.error('Element with id "loadcell1" not found');
+            return;
+        }
+
+        const myChart = echarts.init(chartDom1);
+
+        const option = {
+            animationDuration: 1000,
+            // title: {
+            //     text: 'Pressure Data Visualization'
+            // },
+            // backgroundColor: 'transparent',
+            legend: {
+                data: ['Pressure 1', 'Pressure 2', 'Pressure 3'],
+                textStyle: {
+                    color: '#333'  // Ensure legend text remains visible
+                },
+                backgroundColor: 'transparent'
+                // backgroundColor: 'rgb(0, 0, 0)',
+            },
+            tooltip: {
+                order: 'valueDesc',
+                trigger: 'axis'
+            },
+            toolbox: {
+                feature: {
+                    saveAsImage: {},
+                    // brush: {},
+                    // restore: {},
+                    // dataView: {}
+                }
+            },
+            xAxis: {
+                type: 'category',
+                name: 'Time (s)',
+                nameLocation: 'middle',
+                nameGap: 22,
+                data: [] // Time labels
+            },
+            yAxis: {
+                name: 'Pressure (psi)',
+                nameLocation: 'middle',
+                nameGap: 30,
+                // offset:10
+                // boundaryGap: ['20%']
+            },
+            grid: {
+                left: '7%',
+                right: '0%',
+                top: '10%',
+                bottom: '10%'
+            },
+            dataZoom: [
+                // {
+                //     type: 'slider',
+                //     start: 0,
+                //     end: 100
+                // },
+                {
+                    type: 'inside',
+                    start: 0,
+                    end: 100
+                }
+            ],
+            series: [
+                {
+                    name: 'Pressure 1',
+                    type: 'line',
+                    showSymbol: true,
+                    smooth: true,
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: [] // Pressure 1 data
+                },
+                {
+                    name: 'Pressure 2',
+                    type: 'line',
+                    showSymbol: true,
+                    smooth: true,
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: [] // Pressure 2 data
+                },
+                {
+                    name: 'Pressure 3',
+                    type: 'line',
+                    showSymbol: true,
+                    smooth: true,
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: [] // Pressure 2 data
+                }
+
+            ]
+        };
+
+        // loadcell
+        const loadChart = echarts.init(chartDom2 ,'dark');
+
+        const loadoption = {
+            animationDuration: 1000,
+            // title: {
+            //     text: 'Pressure Data Visualization'
+            // },
+            legend: {
+                data: ['loadcell']
+            },
+            tooltip: {
+                order: 'valueDesc',
+                trigger: 'axis'
+            },
+            toolbox: {
+                feature: {
+                    saveAsImage: {},
+                    // brush: {},
+                    // restore: {},
+                    // dataView: {}
+                }
+            },
+            xAxis: {
+                type: 'category',
+                name: 'Time (s)',
+                nameLocation: 'middle',
+                data: [] // Time labels
+                , nameGap: 22,
+            },
+            yAxis: {
+                name: 'loadcell (N)',
+                nameLocation: 'middle',
+                nameGap: 30,
+            },
+            grid: {
+                left: '7%',
+                right: '0%',
+                top: '10%',
+                bottom: '10%'
+            },
+            dataZoom: [
+                // {
+                //     type: 'slider',
+                //     start: 0,
+                //     end: 100
+                // },
+                {
+                    type: 'inside',
+                    start: 0,
+                    end: 100
+                }
+            ],
+            series: [
+                {
+                    name: 'loadcell',
+                    type: 'line',
+                    showSymbol: true,
+                    smooth: true,
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: [] // loadcell data
+                }
+            ]
+        };
+
+        //for temp
+        const tempChart = echarts.init(chartDom3,'dark');
+
+        const tempOption = {
+            animationDuration: 1000,
+            legend: {
+                data: ['Temperature 1']
+            },
+            tooltip: {
+                order: 'valueDesc',
+                trigger: 'axis'
+            },
+            toolbox: {
+                feature: {
+                    saveAsImage: {},
+                    // brush: {},
+                    // restore: {},
+                    // dataView: {}
+                }
+            },
+            xAxis: {
+                type: 'category',
+                name: 'Time (s)',
+                nameLocation: 'middle',
+                data: [] // Time labels
+                , nameGap: 22,
+            },
+            yAxis: {
+                name: 'Temperature (°C)',
+                nameLocation: 'middle',
+                nameGap: 30,
+            },
+            grid: {
+                left: '7%',
+                right: '0%',
+                top: '10%',
+                bottom: '10%'
+            },
+            dataZoom: [{
+                type: 'inside',
+                start: 0,
+                end: 100
+            }],
+            series: [
+                {
+                    name: 'Temperature 1',
+                    type: 'line',
+                    showSymbol: true,
+                    smooth: true,
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: [] // Temperature 1 data
+                },
+                // {
+                //     name: 'Temperature 2',
+                //     type: 'line',
+                //     showSymbol: true,
+                //     smooth: true,
+                //     emphasis: {
+                //         focus: 'series'
+                //     },
+                //     data: [] // Temperature 2 data
+                // }
+            ]
+        };
+
+        myChart.setOption(option);
+        loadChart.setOption(loadoption);
+        tempChart.setOption(tempOption);
+
+        // Plot initial data
+        const initialData = JSON.parse('{{ data | tojson | safe }}');
+        const timeSet = new Set();
+        initialData.forEach(record => {
+            const timeString = record.time;
+            const pressure1 = record.pressure1;
+            const pressure2 = record.pressure2;
+            const pressure3 = record.pressure3;
+            const temperature1 = record.temperature1;
+            const loadcell = record.loadcell;
+
+            option.xAxis.data.unshift(timeString);
+            option.series[0].data.unshift(pressure1);
+            option.series[1].data.unshift(pressure2);
+            option.series[2].data.unshift(pressure3);
+
+            //for temp
+            tempOption.xAxis.data.unshift(timeString);
+            tempOption.series[0].data.unshift(temperature1);
+
+            //for loadcell
+            loadoption.xAxis.data.unshift(timeString);
+            loadoption.series[0].data.unshift(loadcell);
+            timeSet.add(timeString);
+        });
+
+        myChart.setOption(option);
+        loadChart.setOption(loadoption);
+        tempChart.setOption(tempOption);
+
+        let fetchDataInterval;
+        const fetchData = () => {
+            fetch('/latest_data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const latestData = data[0];
+                        console.log(latestData);
+                        const timeString = latestData.time;
+                        const pressure1 = latestData.pressure1;
+                        const pressure2 = latestData.pressure2;
+                        const pressure3 = latestData.pressure3;
+                        const temperature1 = latestData.temperature1;
+                        const loadcell = latestData.loadcell;
+
+                        option.xAxis.data.push(timeString);
+                        option.series[0].data.push(pressure1);
+                        option.series[1].data.push(pressure2);
+                        option.series[2].data.push(pressure3);
+
+                        //for temp
+                        tempOption.xAxis.data.push(timeString);
+                        tempOption.series[0].data.push(temperature1);
+
+                        //for loadcell
+                        loadoption.xAxis.data.push(timeString);
+                        loadoption.series[0].data.push(loadcell);
+
+
+                        myChart.setOption(option);
+                        loadChart.setOption(loadoption);
+                        tempChart.setOption(tempOption);
+                    }
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        };
+
+        // Fetch data every 1 second
+        fetchDataInterval = setInterval(fetchData, 1000);
+
+        // Resize chart on window resize
+        window.addEventListener('resize', () => {
+            myChart.resize();
+            tempChart.resize();
+        });
+
+        // Control button to pause/resume fetching data
+        const controlBtn = document.getElementById('controlBtn');
+        let isPaused = false;
+        controlBtn.addEventListener('click', () => {
+            if (isPaused) {
+                fetchDataInterval = setInterval(fetchData, 1000);
+                controlBtn.textContent = 'Pause';
+            } else {
+                clearInterval(fetchDataInterval);
+                controlBtn.textContent = 'Resume';
+            }
+            isPaused = !isPaused;
+        });
+    });
+</script>
+
+</html>
