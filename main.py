@@ -26,7 +26,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SECRET_KEY'] = 'mach24_secret_key'
 
 # # Define the absolute path to node_modules
-# NODE_MODULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'node_modules')
+# NODE_MODULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'node_modules')
 
 # @app.route('/node_modules/<path:filename>')
 # def serve_node_modules(filename):
@@ -393,6 +393,25 @@ def index():
     logger.info(f"Index page accessed. Connection status: {connection_status}")
     return render_template('index.html')
 
+@app.route('/page/home')
+def home_page():
+    return render_template('home.html')
+
+@app.route('/page/dash1')
+def dashboard_page():
+    """Render the data visualization page."""
+    try:
+        records = SensorData.query.order_by(SensorData.id.desc()).all()
+        data = [record.to_dict() for record in records]
+        return render_template('dash1.html', data=data)
+    except Exception as e:
+        logger.error(f"Error in visualize_data: {e}")
+        return f"Error loading visualization: {str(e)}", 500
+    
+@app.route('/page/dash2')
+def settings_page():
+    return render_template('dash2.html')
+
 @app.route('/visualize', methods=['GET'])
 def visualize_data():
     """Render the data visualization page."""
@@ -562,6 +581,16 @@ def switch_database(filename):
     except Exception as e:
         logger.error(f"Error switching database: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+    
+
+@app.after_request
+def add_headers(response):
+    """Add security and cache headers to all responses."""
+    # Add cache control headers
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    # Add security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 # ========= Main Entry Point =========
 
