@@ -3,8 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Orthographic Projection - Apache ECharts Demo</title>
-    <!-- <link rel="stylesheet" href="./style.css"> -->
+    <title >Position Data Visualization</title>
     <style>
         * {
             margin: 0;
@@ -21,6 +20,7 @@
 
 <body>
     <div id="chart-container"></div>
+    <button id="controlBtn" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">Pause</button>
     <script src="https://echarts.apache.org/en/js/vendors/echarts/dist/echarts.min.js"></script>
     <script src="https://echarts.apache.org/en/js/vendors/echarts-gl/dist/echarts-gl.min.js"></script>
     <script>
@@ -29,127 +29,195 @@
             renderer: 'canvas',
             useDirtyRect: false
         });
-        var app = {};
+        // var app = {};
 
 
-        var option;
 
-        var data = [];
-        // Parametric curve
-        for (var t = 0; t < 25; t += 0.001) {
-            var x = (1 + 0.25 * Math.cos(75 * t)) * Math.cos(t);
-            var y = (1 + 0.25 * Math.cos(75 * t)) * Math.sin(t);
-            var z = t + 2.0 * Math.sin(75 * t);
-            data.push([x, y, z]);
-        }
-        console.log(data.length);
-        option = {
-            tooltip: {},
-            backgroundColor: '#fff',
-            visualMap: {
-                show: false,
-                dimension: 2,
-                min: 0,
-                max: 30,
-                inRange: {
-                    color: [
-                        '#313695',
-                        '#4575b4',
-                        '#74add1',
-                        '#abd9e9',
-                        '#e0f3f8',
-                        '#ffffbf',
-                        '#fee090',
-                        '#fdae61',
-                        '#f46d43',
-                        '#d73027',
-                        '#a50026'
-                    ]
+        // Configure 3D chart
+        var option = {
+            title: {
+                text: 'Position Data Visualization',
+                left: 'center'
+            },
+            tooltip: {
+                formatter: function (params) {
+                    return `X: ${params.value[0]}<br>Y: ${params.value[1]}<br>Altitude: ${params.value[2]}`;
                 }
             },
+            backgroundColor: '#fff',
+            // visualMap: {
+            //     show: true,
+            //     dimension: 2, // Use altitude for color mapping
+            //     min: Math.min(...altData),
+            //     max: Math.max(...altData),
+            //     inRange: {
+            //         color: [
+            //             '#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8',
+            //             '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'
+            //         ]
+            //     }
+            // },
             xAxis3D: {
-                type: 'value'
+                type: 'value',
+                name: 'X Position'
             },
             yAxis3D: {
-                type: 'value'
+                type: 'value',
+                name: 'Y Position'
             },
             zAxis3D: {
-                type: 'value'
+                type: 'value',
+                name: 'Altitude'
             },
             grid3D: {
                 viewControl: {
-                    projection: 'orthographic'
-                }
+                    projection: 'orthographic',
+                    autoRotate: false,
+                },
+                environment: '#fff'
             },
             series: [
                 {
+                    type: 'scatter3D',
+                    data: data3D,
+                    symbolSize: 5,
+                    itemStyle: {
+                        opacity: 0.8
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            color: '#ff0000'
+                        }
+                    }
+                },
+                {
                     type: 'line3D',
-                    data: data,
+                    data: data3D,
                     lineStyle: {
-                        width: 4
+                        width: 4,
+                        opacity: 0.5
                     }
                 }
             ]
         };
 
+        myChart.setOption(option);
+                // Get data transmitted through Flask
+        const initialData = JSON.parse('{{ data | tojson | safe }}');
+        // console.log('Data received from Flask:', initialData);
+        // console.log('Number of records received:', initialData.length);
+
+        // Prepare data arrays - similar to visualize.js approach
+        var timeData = [];
+        var xPosData = [];
+        var yPosData = [];
+        var altData = [];
+        var data3D = [];
+
+        // Process initial data
+        initialData.forEach(record => {
+            const teensyTime = parseFloat(record.teensytime);
+            const xPos = parseFloat(record.x_pos);
+            const yPos = parseFloat(record.y_pos);
+            const alt = parseFloat(record.alt);
+
+            // Update data arrays
+            timeData.unshift(teensyTime);
+            xPosData.unshift(xPos);
+            yPosData.unshift(yPos);
+            altData.unshift(alt);
+            data3D.unshift([xPos, yPos, alt]);
+        });
+
+        // Initialize chart
         if (option && typeof option === 'object') {
             myChart.setOption(option);
         }
 
         window.addEventListener('resize', myChart.resize);
 
-        // Get data transmitted through Flask
-        const initialData = JSON.parse('{{ data | tojson | safe }}');
-        console.log('Data received from Flask:', initialData);
-        console.log('Number of records received:', initialData.length);
-
-        // Display first record if available
-        // if (initialData && initialData.length > 0) {
-        //   console.log('Sample record:', initialData[0]);
-        // }
-
-        initialData.forEach(record => {
-            // Log each record with details
-            console.log(`Record ${record.record_sn} - Time: ${record.time}`);
-            console.log(`Teensy Time: ${record.teensytime}`);
-            console.log(`Position: X=${record.x_pos}, Y=${record.y_pos}, Alt=${record.alt}`);
-            console.log(`Acceleration: X=${record.acc_x}, Y=${record.acc_y}, Z=${record.acc_z}`);
-            console.log(`Orientation: X=${record.eu_x}, Y=${record.eu_y}, Z=${record.eu_z}`);
-            console.log(`GPS: Lat=${record.lat}, Lon=${record.lon}, Alt=${record.gps_alt}`);
-            console.log(`Power: Voltage=${record.voltage}, Current=${record.current}, Temp=${record.teensytemp}`);
-            console.log(`Nano Values: Nano1=${record.nano_value1}, Nano2=${record.nano_value2}, Nano3=${record.nano_value3}, Nano4=${record.nano_value4}`);
-            console.log(`Valve State: ${record.valve_state}`);
-            console.log('-------------------------');
-        });
-
+        // Set up real-time updates following visualize.js pattern
         let fetchDataInterval;
-        const fetchData = () => {
+        
+        function updateChart(newData) {
+            if (newData && newData.length > 0) {
+                const record = newData[0];
+                
+                // Extract and convert values
+                const teensyTime = parseFloat(record.teensytime);
+                const xPos = parseFloat(record.x_pos);
+                const yPos = parseFloat(record.y_pos);
+                const alt = parseFloat(record.alt);
+                
+                // Update data arrays
+                timeData.push(teensyTime);
+                xPosData.push(xPos);
+                yPosData.push(yPos);
+                altData.push(alt);
+                data3D.push([xPos, yPos, alt]);
+                
+                // Keep maximum 100 points in the chart
+                // if (data3D.length > 100) {
+                //     timeData.shift();
+                //     xPosData.shift();
+                //     yPosData.shift();
+                //     altData.shift();
+                //     data3D.shift();
+                // }
+                
+                // // Update visual ranges if needed
+                const minAlt = Math.min(...altData);
+                const maxAlt = Math.max(...altData);
+                
+                // Update chart
+                myChart.setOption({
+                    visualMap: {
+                        min: minAlt,
+                        max: maxAlt
+                    },
+                    series: [
+                        {
+                            type: 'scatter3D',
+                            data: data3D
+                        },
+                        {
+                            type: 'line3D',
+                            data: data3D
+                        }
+                    ]
+                });
+                
+                // Log key data points
+                console.log(`Updated with new point: X=${xPos}, Y=${yPos}, Alt=${alt}`);
+            }
+        }
+        
+        function fetchData() {
             fetch('/latest_data')
                 .then(response => response.json())
-                .then(data => {
-                    console.log('Latest data fetched:', data);
-
-                    // if (data && data.length > 0) {
-                    const record = data[0];
-                    console.log(`Record ${record.record_sn} - Time: ${record.time}`);
-                    console.log(`Teensy Time: ${record.teensytime}`);
-                    console.log(`Position: X=${record.x_pos}, Y=${record.y_pos}, Alt=${record.alt}`);
-                    console.log(`Acceleration: X=${record.acc_x}, Y=${record.acc_y}, Z=${record.acc_z}`);
-                    console.log(`Orientation: X=${record.eu_x}, Y=${record.eu_y}, Z=${record.eu_z}`);
-                    console.log(`GPS: Lat=${record.lat}, Lon=${record.lon}, Alt=${record.gps_alt}`);
-                    console.log(`Power: Voltage=${record.voltage}, Current=${record.current}, Temp=${record.teensytemp}`);
-                    console.log(`Nano Values: Nano1=${record.nano_value1}, Nano2=${record.nano_value2}, Nano3=${record.nano_value3}, Nano4=${record.nano_value4}`);
-                    console.log(`Valve State: ${record.valve_state}`);
-                    console.log('-------------------------');
-                    // } else {
-                    //     console.log('No latest data available');
-                    // }
+                .then(newData => {
+                    console.log('Latest data fetched:', newData);
+                    updateChart(newData);
                 })
                 .catch(error => console.error('Error fetching data:', error));
-        };
+        }
 
-        // Fetch data every 1 second
+        // Start fetching data at regular intervals
         fetchDataInterval = setInterval(fetchData, 1000);
+
+            // Control button to pause/resume fetching data
+    const controlBtn = document.getElementById('controlBtn');
+    let isPaused = false;
+    controlBtn.addEventListener('click', () => {
+        if (isPaused) {
+            fetchDataInterval = setInterval(fetchData, 1000);
+            controlBtn.textContent = 'Pause';
+        } else {
+            clearInterval(fetchDataInterval);
+            controlBtn.textContent = 'Resume';
+        }
+        isPaused = !isPaused;
+    });
     </script>
 </body>
 

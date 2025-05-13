@@ -412,13 +412,13 @@ def dashboard_page():
 def settings_page():
     return render_template('dash2.html')
 
-@app.route('/visualize', methods=['GET'])
+@app.route('/page/dash3', methods=['GET'])
 def visualize_data():
     """Render the data visualization page."""
     try:
         records = SensorData.query.order_by(SensorData.id.desc()).all()
         data = [record.to_dict() for record in records]
-        return render_template('visualize.html', data=data)
+        return render_template('dash3.html', data=data)
     except Exception as e:
         logger.error(f"Error in visualize_data: {e}")
         return f"Error loading visualization: {str(e)}", 500
