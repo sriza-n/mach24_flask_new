@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mach24</title>
+    <!-- Local Tailwind CSS file -->
+    <link href="{{ url_for('static', filename='lib/tailwind.css') }}" rel="stylesheet">
+    <!-- Dark mode helper styles -->
+    <!-- <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script> -->
+    <!-- Keep dark mode helper styles -->
+    <style>
+        .dark { color-scheme: dark; }
+        html.transitioning * {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Welcome to Mach24</h1>
+            <p class="text-gray-600 dark:text-gray-300 mt-2">A modern application powered by Flask and Tailwind CSS</p>
+            
+            <!-- Dark mode toggle button -->
+            <button id="darkModeToggle" class="mt-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-md flex items-center">
+                <span class="dark:hidden">Switch to Dark Mode</span>
+                <span class="hidden dark:inline">Switch to Light Mode</span>
+            </button>
+        </header>
+        
+        <main class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Getting Started with Tailwind CSS</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h3 class="text-lg font-medium text-blue-800 dark:text-blue-200 mb-2">Utility-First Approach</h3>
+                    <p class="text-blue-700 dark:text-blue-300">Tailwind uses utility classes to build designs without leaving your HTML.</p>
+                </div>
+                
+                <div class="bg-green-50 dark:bg-green-900 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                    <h3 class="text-lg font-medium text-green-800 dark:text-green-200 mb-2">Responsive Design</h3>
+                    <p class="text-green-700 dark:text-green-300">Use responsive prefixes like sm:, md:, lg: to apply styles at different breakpoints.</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-center">
+                <button class="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg transition duration-300">
+                    Learn More
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Dark mode toggle functionality -->
+    <script>
+        document.documentElement.classList.add('dark');
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const htmlElement = document.documentElement;
+            
+            // Helper function to handle theme changes
+            function setTheme(isDark) {
+                // Add transitioning class for smooth effect
+                htmlElement.classList.add('transitioning');
+                
+                if (isDark) {
+                    htmlElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    htmlElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+                
+                // Remove transitioning class after animation completes
+                setTimeout(() => {
+                    htmlElement.classList.remove('transitioning');
+                }, 300);
+            }
+            
+            // Check for saved theme preference or use system preference
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                setTheme(true);
+            }
+            
+            // Toggle dark mode on button click
+            darkModeToggle.addEventListener('click', function() {
+                setTheme(!htmlElement.classList.contains('dark'));
+            });
+            
+            // Listen for system preference changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                if (!localStorage.getItem('theme')) {
+                    setTheme(e.matches);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

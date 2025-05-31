@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title >Position Data Visualization</title>
+    <title>Position Data Visualization</title>
     <style>
         * {
             margin: 0;
@@ -67,7 +67,16 @@
             },
             zAxis3D: {
                 type: 'value',
-                name: 'Altitude'
+                name: 'Altitude',
+                scale: true, // Enable scale to better show differences
+                min: function (value) {
+                    // Dynamically set min to slightly below the lowest value
+                    return value.min * 0.9;
+                },
+                max: function (value) {
+                    // Dynamically set max to slightly above the highest value
+                    return value.max * 1.1;
+                }
             },
             grid3D: {
                 viewControl: {
@@ -102,7 +111,7 @@
         };
 
         myChart.setOption(option);
-                // Get data transmitted through Flask
+        // Get data transmitted through Flask
         const initialData = JSON.parse('{{ data | tojson | safe }}');
         // console.log('Data received from Flask:', initialData);
         // console.log('Number of records received:', initialData.length);
@@ -119,6 +128,8 @@
             const teensyTime = parseFloat(record.teensytime);
             const xPos = parseFloat(record.x_pos);
             const yPos = parseFloat(record.y_pos);
+            // const xPos = parseFloat(record.fused_lat);
+            // const yPos = parseFloat(record.fused_lon);
             const alt = parseFloat(record.alt);
 
             // Update data arrays
@@ -138,24 +149,26 @@
 
         // Set up real-time updates following visualize.js pattern
         let fetchDataInterval;
-        
+
         function updateChart(newData) {
             if (newData && newData.length > 0) {
                 const record = newData[0];
-                
+
                 // Extract and convert values
                 const teensyTime = parseFloat(record.teensytime);
+                //const xPos = parseFloat(record.fused_lat);
+                //const yPos = parseFloat(record.fused_lon);
                 const xPos = parseFloat(record.x_pos);
                 const yPos = parseFloat(record.y_pos);
                 const alt = parseFloat(record.alt);
-                
+
                 // Update data arrays
                 timeData.push(teensyTime);
                 xPosData.push(xPos);
                 yPosData.push(yPos);
                 altData.push(alt);
                 data3D.push([xPos, yPos, alt]);
-                
+
                 // Keep maximum 100 points in the chart
                 // if (data3D.length > 100) {
                 //     timeData.shift();
@@ -164,16 +177,25 @@
                 //     altData.shift();
                 //     data3D.shift();
                 // }
-                
+
                 // // Update visual ranges if needed
                 const minAlt = Math.min(...altData);
                 const maxAlt = Math.max(...altData);
-                
+                const range = maxAlt - minAlt;
+
+                // If altitude range is very small, expand it to make changes more visible
+                const scaledMin = range < 1 ? minAlt - 1 : minAlt;
+                const scaledMax = range < 1 ? maxAlt + 1 : maxAlt;
+
                 // Update chart
                 myChart.setOption({
                     visualMap: {
                         min: minAlt,
                         max: maxAlt
+                    },
+                    zAxis3D: {
+                        min: scaledMin,
+                        max: scaledMax
                     },
                     series: [
                         {
@@ -186,12 +208,12 @@
                         }
                     ]
                 });
-                
+
                 // Log key data points
                 console.log(`Updated with new point: X=${xPos}, Y=${yPos}, Alt=${alt}`);
             }
         }
-        
+
         function fetchData() {
             fetch('/latest_data')
                 .then(response => response.json())
@@ -205,19 +227,19 @@
         // Start fetching data at regular intervals
         fetchDataInterval = setInterval(fetchData, 1000);
 
-            // Control button to pause/resume fetching data
-    const controlBtn = document.getElementById('controlBtn');
-    let isPaused = false;
-    controlBtn.addEventListener('click', () => {
-        if (isPaused) {
-            fetchDataInterval = setInterval(fetchData, 1000);
-            controlBtn.textContent = 'Pause';
-        } else {
-            clearInterval(fetchDataInterval);
-            controlBtn.textContent = 'Resume';
-        }
-        isPaused = !isPaused;
-    });
+        // Control button to pause/resume fetching data
+        const controlBtn = document.getElementById('controlBtn');
+        let isPaused = false;
+        controlBtn.addEventListener('click', () => {
+            if (isPaused) {
+                fetchDataInterval = setInterval(fetchData, 1000);
+                controlBtn.textContent = 'Pause';
+            } else {
+                clearInterval(fetchDataInterval);
+                controlBtn.textContent = 'Resume';
+            }
+            isPaused = !isPaused;
+        });
     </script>
 </body>
 

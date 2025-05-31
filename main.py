@@ -16,6 +16,7 @@ import serial
 import serial.tools.list_ports
 import requests
 
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -82,7 +83,8 @@ def initialize_database(db_filename=None):
     current_database['path'] = database_path
     
     # Configure SQLAlchemy
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
+    # app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sensor_data.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     return True
@@ -103,11 +105,12 @@ class SensorData(db.Model):
     voltage = db.Column(db.Float, nullable=False)
     current = db.Column(db.Float, nullable=False)
     teensytemp = db.Column(db.Float, nullable=False)
-    nano_value1 = db.Column(db.Integer, nullable=False)
-    nano_value2 = db.Column(db.Integer, nullable=False)
-    nano_value3 = db.Column(db.Integer, nullable=False)
-    nano_value4 = db.Column(db.Integer, nullable=False)
-    valve_state = db.Column(db.String(20), nullable=False)
+    remote_st = db.Column(db.Integer, nullable=False)
+    valve_1 = db.Column(db.Integer, nullable=False)
+    valve_2 = db.Column(db.Integer, nullable=False)
+    activ_st = db.Column(db.Integer, nullable=False)
+    igni_st = db.Column(db.Integer, nullable=False)
+    para_st = db.Column(db.String(20), nullable=False)
     x_pos = db.Column(db.Float, nullable=False)
     y_pos = db.Column(db.Float, nullable=False)
     alt = db.Column(db.Float, nullable=False)
@@ -119,7 +122,9 @@ class SensorData(db.Model):
     acc_z = db.Column(db.Float, nullable=False)
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
-    gps_alt = db.Column(db.Float, nullable=False)
+    fused_lat = db.Column(db.Float, nullable=False)
+    fused_lon = db.Column(db.Float, nullable=False)
+    # gps_alt = db.Column(db.Float, nullable=False)
     
     def to_dict(self):
         """Convert model to dictionary."""
@@ -131,11 +136,12 @@ class SensorData(db.Model):
             "voltage": self.voltage,
             "current": self.current,
             "teensytemp": self.teensytemp,
-            "nano_value1": self.nano_value1,
-            "nano_value2": self.nano_value2,
-            "nano_value3": self.nano_value3,
-            "nano_value4": self.nano_value4,
-            "valve_state": self.valve_state,
+            "remote_st": self.remote_st,
+            "valve_1": self.valve_1,
+            "valve_2": self.valve_2,
+            "activ_st": self.activ_st,
+            "igni_st": self.igni_st,
+            "para_st": self.para_st,
             "x_pos": self.x_pos,
             "y_pos": self.y_pos,
             "alt": self.alt,
@@ -147,7 +153,9 @@ class SensorData(db.Model):
             "acc_z": self.acc_z,
             "lat": self.lat,
             "lon": self.lon,
-            "gps_alt": self.gps_alt
+            "fused_lat": self.fused_lat,
+            "fused_lon": self.fused_lon,
+            # "gps_alt": self.gps_alt
         }
 
 class SensorData0(db.Model):
@@ -160,11 +168,12 @@ class SensorData0(db.Model):
     voltage = db.Column(db.Float, nullable=False)
     current = db.Column(db.Float, nullable=False)
     teensytemp = db.Column(db.Float, nullable=False)
-    nano_value1 = db.Column(db.Integer, nullable=False)
-    nano_value2 = db.Column(db.Integer, nullable=False)
-    nano_value3 = db.Column(db.Integer, nullable=False)
-    nano_value4 = db.Column(db.Integer, nullable=False)
-    valve_state = db.Column(db.String(20), nullable=False)
+    remote_st = db.Column(db.Integer, nullable=False)
+    valve_1 = db.Column(db.Integer, nullable=False)
+    valve_2 = db.Column(db.Integer, nullable=False)
+    activ_st = db.Column(db.Integer, nullable=False)
+    igni_st = db.Column(db.Integer, nullable=False)
+    para_st = db.Column(db.String(20), nullable=False)
     x_pos = db.Column(db.Float, nullable=False)
     y_pos = db.Column(db.Float, nullable=False)
     alt = db.Column(db.Float, nullable=False)
@@ -176,23 +185,26 @@ class SensorData0(db.Model):
     acc_z = db.Column(db.Float, nullable=False)
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
-    gps_alt = db.Column(db.Float, nullable=False)
+    fused_lat = db.Column(db.Float, nullable=False)
+    fused_lon = db.Column(db.Float, nullable=False)
+    # gps_alt = db.Column(db.Float, nullable=False)
     
     def to_dict(self):
         """Convert model to dictionary."""
         return {
-            "date": self.date,
+"date": self.date,
             "time": self.time,
             "teensytime": self.teensytime,
             "record_sn": self.record_sn,
             "voltage": self.voltage,
             "current": self.current,
             "teensytemp": self.teensytemp,
-            "nano_value1": self.nano_value1,
-            "nano_value2": self.nano_value2,
-            "nano_value3": self.nano_value3,
-            "nano_value4": self.nano_value4,
-            "valve_state": self.valve_state,
+            "remote_st": self.remote_st,
+            "valve_1": self.valve_1,
+            "valve_2": self.valve_2,
+            "activ_st": self.activ_st,
+            "igni_st": self.igni_st,
+            "para_st": self.para_st,
             "x_pos": self.x_pos,
             "y_pos": self.y_pos,
             "alt": self.alt,
@@ -204,12 +216,117 @@ class SensorData0(db.Model):
             "acc_z": self.acc_z,
             "lat": self.lat,
             "lon": self.lon,
-            "gps_alt": self.gps_alt
+            "fused_lat": self.fused_lat,
+            "fused_lon": self.fused_lon,
+            # "gps_alt": self.gps_alt
+        }
+
+# store switch states
+
+class SwitchState(db.Model):
+    """Model for storing switch and valve state data."""
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(20), nullable=False)
+    time = db.Column(db.String(20), nullable=False)
+    teensytime = db.Column(db.String(20), nullable=False)
+    record_sn = db.Column(db.String(20), nullable=False)
+    voltage = db.Column(db.Float, nullable=False)
+    current = db.Column(db.Float, nullable=False)
+    teensytemp = db.Column(db.Float, nullable=False)
+    remote_st = db.Column(db.Integer, nullable=False)
+    valve_1 = db.Column(db.Integer, nullable=False)
+    valve_2 = db.Column(db.Integer, nullable=False)
+    activ_st = db.Column(db.Integer, nullable=False)
+    igni_st = db.Column(db.Integer, nullable=False)
+    para_st = db.Column(db.String(20), nullable=False)
+    x_pos = db.Column(db.Float, nullable=False)
+    y_pos = db.Column(db.Float, nullable=False)
+    alt = db.Column(db.Float, nullable=False)
+    eu_x = db.Column(db.Float, nullable=False)
+    eu_y = db.Column(db.Float, nullable=False)
+    eu_z = db.Column(db.Float, nullable=False)
+    acc_x = db.Column(db.Float, nullable=False)
+    acc_y = db.Column(db.Float, nullable=False)
+    acc_z = db.Column(db.Float, nullable=False)
+    lat = db.Column(db.Float, nullable=False)
+    lon = db.Column(db.Float, nullable=False)
+    fused_lat = db.Column(db.Float, nullable=False)
+    fused_lon = db.Column(db.Float, nullable=False)
+    
+    def to_dict(self):
+        """Convert model to dictionary."""
+        return {
+            "date": self.date,
+            "time": self.time,
+            "teensytime": self.teensytime,
+            "record_sn": self.record_sn,
+            "voltage": self.voltage,
+            "current": self.current,
+            "teensytemp": self.teensytemp,
+            "remote_st": self.remote_st,
+            "valve_1": self.valve_1,
+            "valve_2": self.valve_2,
+            "activ_st": self.activ_st,
+            "igni_st": self.igni_st,
+            "para_st": self.para_st,
+            "x_pos": self.x_pos,
+            "y_pos": self.y_pos,
+            "alt": self.alt,
+            "eu_x": self.eu_x,
+            "eu_y": self.eu_y,
+            "eu_z": self.eu_z,
+            "acc_x": self.acc_x,
+            "acc_y": self.acc_y,
+            "acc_z": self.acc_z,
+            "lat": self.lat,
+            "lon": self.lon,
+            "fused_lat": self.fused_lat,
+            "fused_lon": self.fused_lon,
         }
 
 # Create the database and tables
 with app.app_context():
     db.create_all()
+
+
+# processing xy to latlong
+# processing xy to latlong
+from pyproj import Transformer, CRS
+
+def xy_to_latlon(x_meters, y_meters, alt_meters, origin_lat, origin_lon):
+    """
+    Convert local X,Y coordinates (in meters) to lat/lon
+    using a local tangent plane projection (transverse mercator)
+    
+    Parameters:
+    -----------
+    x_meters : float
+        X coordinate in meters from origin
+    y_meters : float
+        Y coordinate in meters from origin
+    alt_meters : float
+        Altitude in meters above ground level
+    origin_lat : float
+        Latitude of the origin point
+    origin_lon : float
+        Longitude of the origin point
+        
+    Returns:
+    --------
+    tuple: (latitude, longitude, altitude)
+        Converted WGS84 coordinates
+    """
+    # Create a transformer from local XY meters to WGS84 lat/lon
+    transformer = Transformer.from_crs(
+        # Local tangent plane centered at origin
+        CRS.from_proj4(f"+proj=tmerc +lat_0={origin_lat} +lon_0={origin_lon} +k=1 +x_0=0 +y_0=0"),
+        CRS.from_epsg(4326),  # Used by Google Maps, OpenStreetMap, and other web mapping services
+        always_xy=True
+    )
+    
+    # Transform the coordinates including altitude
+    lon, lat, alt = transformer.transform(x_meters, y_meters, alt_meters)
+    return lat, lon, alt
 
 # ========= Serial Communication =========
 
@@ -278,37 +395,48 @@ def filter_message(message):
         values = message.strip().split(',')
                    
         # Extract values from the message
-        nano_value4 = int(values[5])  # This determines which table to use
+        nano_value4 = int(values[6])  # This determines which table to use
         # Create record data with current timestamp
         date_time = datetime.now()
+
+        # calculate lat/lon from x_pos and y_pos
+        origin_lat = float(values[19])  # Replace with actual origin latitude
+        origin_lon = float(values[20])  # Replace with actual origin longitude
+        x_pos = float(values[10])
+        y_pos = float(values[11])
+        alt = float(values[12])
+        imulat, imulon ,fusedalt = xy_to_latlon(x_pos, y_pos, alt, origin_lat, origin_lon)
         # Updated record_data dictionary with all fields
         record_data = {
         'date': date_time.strftime('%Y-%m-%d'),
         'time': date_time.strftime('%H:%M:%S:%f')[:-3],
         'teensytime': values[1],
         'record_sn': values[0],
-        'voltage': float(values[7]),
+        'voltage': float(values[9]),
         'current': float(values[8]),
         'teensytemp': float(values[21]),
-        'nano_value1': int(values[2]),
-        'nano_value2': int(values[3]),
-        'nano_value3': int(values[4]),
-        'nano_value4': int(values[5]),
-        'valve_state': values[6],
-        'x_pos': float(values[9]),
-        'y_pos': float(values[10]),
-        'alt': float(values[11]),
-        'eu_x': float(values[12]),
-        'eu_y': float(values[13]),
-        'eu_z': float(values[14]),
-        'acc_x': float(values[15]),
-        'acc_y': float(values[16]),
-        'acc_z': float(values[17]),
-        'lat': float(values[18]),
-        'lon': float(values[19]),
-        'gps_alt': float(values[20]),
+        'remote_st': values[2],
+        'valve_1': int(values[3]),
+        'valve_2': int(values[4]),
+        'activ_st': int(values[5]),
+        'igni_st': int(values[6]),
+        'para_st': values[7],
+        'x_pos': float(values[10]),
+        'y_pos': float(values[11]),
+        'alt': float(values[12]),
+        'eu_x': float(values[13]),
+        'eu_y': float(values[14]),
+        'eu_z': float(values[15]),
+        'acc_x': float(values[16]),
+        'acc_y': float(values[17]),
+        'acc_z': float(values[18]),
+        'lat': float(values[19]),
+        'lon': float(values[20]),
+        'fused_lat':round(imulat,6),
+        'fused_lon': round(imulon,6),
+        # 'gps_alt': float(values[20]),
         }
-        
+   
         # Update latest data for AJAX polling
         latest_data = record_data
 
@@ -317,6 +445,10 @@ def filter_message(message):
             model = SensorData if nano_value4 == 0 else SensorData0
             new_record = model(**record_data)
             db.session.add(new_record)
+
+            # Store switch state data separately
+            new_switch_state = SwitchState(**record_data)
+            db.session.add(new_switch_state)
             db.session.commit()
 
     except Exception as e:
@@ -422,6 +554,17 @@ def visualize_data():
     except Exception as e:
         logger.error(f"Error in visualize_data: {e}")
         return f"Error loading visualization: {str(e)}", 500
+    
+@app.route('/page/dash5', methods=['GET'])
+def visualize_data2():
+    """Render the data visualization page."""
+    try:
+        records = SensorData.query.order_by(SensorData.id.desc()).all()
+        data = [record.to_dict() for record in records]
+        return render_template('dash5.html', data=data)
+    except Exception as e:
+        logger.error(f"Error in visualize_data: {e}")
+        return f"Error loading visualization: {str(e)}", 500
 
 @app.route('/stream', methods=['GET'])
 def stream_data():
@@ -450,6 +593,21 @@ def latest_data_route():
         logger.error(f"Error in latest_data: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/latest_sw', methods=['GET'])
+def latest_switch_state():
+    """API endpoint to get the latest switch state data."""
+    try:
+        # Query the most recent switch state record
+        latest_switch = SwitchState.query.order_by(SwitchState.id.desc()).limit(1).first()
+        
+        if latest_switch:
+            return jsonify(latest_switch.to_dict()), 200
+        else:
+            # If no switch state records exist yet
+            return jsonify({"message": "No switch state data available"}), 404
+    except Exception as e:
+        logger.error(f"Error in latest_switch_state: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/serial_status', methods=['GET'])
@@ -602,7 +760,8 @@ if __name__ == '__main__':
         
         # Start the Flask server
         logger.info("Starting Flask server on port 5000")
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        
+        app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
     except KeyboardInterrupt:
         logger.info("Server shutting down...")
         close_serial()

@@ -31,294 +31,312 @@
         .cesium-viewer-geocoderContainer {
             display: none !important;
         }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
     </style>
+    <link href="{{ url_for('static', filename='lib/tailwind.css') }}" rel="stylesheet">
 </head>
 
 <body>
-    <div id="cesiumContainer"></div>
-    <script type="module">
-        // Your access token can be found at: https://ion.cesium.com/tokens.
-        // This is the default access token from your ion account
+    <div id="cesiumContainer" class="w-screen h-screen"></div>
 
-        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjZTRiMDNmNy03NzkyLTQ0NDEtOTU0Zi1hNWUyNGI3ZjIwYzciLCJpZCI6MzAxNjkzLCJpYXQiOjE3NDcwNDEwNjJ9.yDea13y1sQQ_QDA77GUYwghK3SQ85HM1YLxHc4tvntE';
+</body>
 
-        // Initialize the Cesium viewer
-        const viewer = new Cesium.Viewer('cesiumContainer', {
-            terrain: Cesium.Terrain.fromWorldTerrain(),
-            infoBox: false,
-            selectionIndicator: false,
-            shadows: true,
-            shouldAnimate: true,
+<script type="module">
+    // Your access token can be found at: https://ion.cesium.com/tokens.
+    // This is the default access token from your ion account
+
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjZTRiMDNmNy03NzkyLTQ0NDEtOTU0Zi1hNWUyNGI3ZjIwYzciLCJpZCI6MzAxNjkzLCJpYXQiOjE3NDcwNDEwNjJ9.yDea13y1sQQ_QDA77GUYwghK3SQ85HM1YLxHc4tvntE';
+
+    // Initialize the Cesium viewer
+    const viewer = new Cesium.Viewer('cesiumContainer', {
+        terrain: Cesium.Terrain.fromWorldTerrain(),
+        infoBox: false,
+        selectionIndicator: false,
+        shadows: true,
+        shouldAnimate: true,
+    });
+
+    const osmBuildings = await Cesium.createOsmBuildingsAsync();
+    viewer.scene.primitives.add(osmBuildings);
+
+    // Set initial view
+    // viewer.camera.setView({
+    //     destination: Cesium.Cartesian3.fromDegrees(-122.39, 37.6, 5000)
+    // });
+
+    // ----------------------------------fetch data 
+    let fetchDataInterval;
+    let currentPosition = null;
+    let liveModelEntity = null;
+    let initialAltitude = null;
+    let positionProperty = new Cesium.SampledPositionProperty();
+    let startTime = Cesium.JulianDate.now();
+    let positions = []; // Store historical positions
+
+    // Create a live model entity that will be updated with real-time data
+    async function createLiveModel() {
+        const localModelPath = "/static/assets/rocket.glb";
+
+        liveModelEntity = viewer.entities.add({
+            name: 'Live Rocket',
+            model: {
+                uri: localModelPath,
+                minimumPixelSize: 50,
+                maximumScale: 100,
+                scale: 0.009,
+                // runAnimations: true,
+            },
+        //             path: {
+        //     resolution: 1,
+        //     material: new Cesium.PolylineGlowMaterialProperty({
+        //         glowPower: 0.2,
+        //         color: Cesium.Color.CYAN
+        //     }),
+        //     width: 10
+        // }
         });
 
-        const osmBuildings = await Cesium.createOsmBuildingsAsync();
-        viewer.scene.primitives.add(osmBuildings);
-
-        // Set initial view
-        // viewer.camera.setView({
-        //     destination: Cesium.Cartesian3.fromDegrees(-122.39, 37.6, 5000)
-        // });
-
-        // ----------------------------------fetch data 
-        let fetchDataInterval;
-        let currentPosition = null;
-        let liveModelEntity = null;
-        let initialAltitude = null;
-
-        // Create a live model entity that will be updated with real-time data
-        function createLiveModel() {
-            const localModelPath = "/static/assets/rocket.glb";
-
-            liveModelEntity = viewer.entities.add({
-                name: 'Live Rocket',
-                model: {
-                    uri: localModelPath,
-                    minimumPixelSize: 128,
-                    maximumScale: 20000,
-                    scale: 0.05,
-                    // runAnimations: true,
-                },
-            });
-
-            // viewer.scene.globe.depthTestAgainstTerrain = true;
-            // viewer.scene.globe.enableLighting = true;
-            // viewer.scene.globe.showGroundAtmosphere = true;
+        // viewer.scene.globe.depthTestAgainstTerrain = true;
+        // viewer.scene.globe.enableLighting = true;
+        // viewer.scene.globe.showGroundAtmosphere = true;
 
 
-            return liveModelEntity;
+        return liveModelEntity;
+    }
+
+    // Convert Euler angles to quaternion orientation using HeadingPitchRoll
+    function eulerToQuaternion(position, eulerX, eulerY, eulerZ) {
+        // Convert from degrees to radians
+        const radX = Cesium.Math.toRadians(eulerX);
+        const radY = Cesium.Math.toRadians(eulerY);
+        const radZ = Cesium.Math.toRadians(360 - eulerZ);
+
+        // Map Euler angles to Cesium's heading/pitch/roll
+        // Note: This mapping depends on your sensor's coordinate system
+        // Try these different mappings if the orientation looks wrong
+
+        // Option 1: Standard mapping with 90° adjustments
+        // const heading = radZ + Cesium.Math.toRadians(90); // Add 90° to align with north
+        // const pitch = radX;
+        // const roll = radY;
+
+        const heading = radX;
+        const pitch = radY;
+        const roll = radZ;
+
+        // Create the orientation quaternion
+        const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+        return Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+    }
+
+    // Debug function to visualize orientation
+    // Replace the addOrientationAxes function with this improved version
+    // function addOrientationAxes(entity, length) {
+    //     length = length || 5; // Length of axes in meters
+
+    //     // Only add axes if entity has a valid position
+    //     const currentTime = Cesium.JulianDate.now();
+    //     const position = entity.position.getValue(currentTime);
+
+    //     if (!position) {
+    //         console.warn("Cannot add axes: Entity position not available");
+    //         return;
+    //     }
+
+    //     // Use model matrix for better visualization
+    //     const modelMatrix = Cesium.Matrix4.fromTranslationQuaternionRotationScale(
+    //         position,
+    //         entity.orientation.getValue(currentTime),
+    //         new Cesium.Cartesian3(1, 1, 1)
+    //     );
+
+    //     // Add axes using primitives instead of entities
+    //     const axesInstance = new Cesium.DebugModelMatrixPrimitive({
+    //         modelMatrix: modelMatrix,
+    //         length: length,
+    //         width: 3.0,
+    //         show: true
+    //     });
+
+    //     viewer.scene.primitives.add(axesInstance);
+
+    //     // Store reference to remove later if needed
+    //     entity.axesPrimitive = axesInstance;
+    // }
+
+    function updateCameraOrientation() {
+        if (liveModelEntity && liveModelEntity.orientation) {
+            // Get current entity orientation and position
+            const currentTime = Cesium.JulianDate.now();
+            const entityOrientation = liveModelEntity.orientation.getValue(currentTime);
+            const entityPosition = liveModelEntity.position.getValue(currentTime);
+
+            if (!entityOrientation || !entityPosition) return;
+
+            // Define where on the rocket to mount the camera
+            // Adjust these values to change the mounting position
+            const offset = new Cesium.Cartesian3(0, -5, 2); // Slightly behind and above
+
+            // Transform offset from model space to world space
+            const rotation = Cesium.Matrix3.fromQuaternion(entityOrientation);
+            const transformedOffset = Cesium.Matrix3.multiplyByVector(
+                rotation,
+                offset,
+                new Cesium.Cartesian3()
+            );
+
+            // Position camera at the transformed offset from the entity
+            const cameraPosition = Cesium.Cartesian3.add(
+                entityPosition,
+                transformedOffset,
+                new Cesium.Cartesian3()
+            );
+
+            // "Look forward" direction in model space
+            const lookDirection = new Cesium.Cartesian3(0, 0, -10); // Looking forward
+
+            // Transform look direction to world space
+            const transformedLookDirection = Cesium.Matrix3.multiplyByVector(
+                rotation,
+                lookDirection,
+                new Cesium.Cartesian3()
+            );
+
+            // Calculate target point to look at
+            const lookTarget = Cesium.Cartesian3.add(
+                cameraPosition,
+                transformedLookDirection,
+                new Cesium.Cartesian3()
+            );
+
+            // Set camera position and orientation
+            viewer.camera.position = cameraPosition;
+            viewer.camera.direction = Cesium.Cartesian3.normalize(
+                Cesium.Cartesian3.subtract(lookTarget, cameraPosition, new Cesium.Cartesian3()),
+                new Cesium.Cartesian3()
+            );
+            viewer.camera.up = Cesium.Matrix3.multiplyByVector(
+                rotation,
+                Cesium.Cartesian3.UNIT_Z, // Up is Z in model space
+                new Cesium.Cartesian3()
+            );
         }
+    }
 
-        // Convert Euler angles to quaternion orientation using HeadingPitchRoll
-        function eulerToQuaternion(position, eulerX, eulerY, eulerZ) {
-            // Convert from degrees to radians
-            const radX = Cesium.Math.toRadians(eulerX);
-            const radY = Cesium.Math.toRadians(eulerY);
-            const radZ = Cesium.Math.toRadians(360 - eulerZ);
-
-            // Map Euler angles to Cesium's heading/pitch/roll
-            // Note: This mapping depends on your sensor's coordinate system
-            // Try these different mappings if the orientation looks wrong
-
-            // Option 1: Standard mapping with 90° adjustments
-            // const heading = radZ + Cesium.Math.toRadians(90); // Add 90° to align with north
-            // const pitch = radX;
-            // const roll = radY;
-
-            const heading = radX;
-            const pitch = radY;
-            const roll = radZ;
-
-            // Create the orientation quaternion
-            const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
-            return Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
-        }
-
-        // Debug function to visualize orientation
-        // function addOrientationAxes(entity, length) {
-        //     length = length || 100; // Length of axes in meters
-
-        //     // X axis (red) - Roll axis
-        //     viewer.entities.add({
-        //         position: entity.position,
-        //         orientation: entity.orientation,
-        //         polyline: {
-        //             positions: [
-        //                 new Cesium.Cartesian3(0, 0, 0),
-        //                 new Cesium.Cartesian3(length, 0, 0)
-        //             ],
-        //             width: 3,
-        //             material: Cesium.Color.RED,
-        //             referenceFrame: Cesium.ReferenceFrame.ENTITY
-        //         }
-        //     });
-
-        //     // Y axis (green) - Pitch axis
-        //     viewer.entities.add({
-        //         position: entity.position,
-        //         orientation: entity.orientation,
-        //         polyline: {
-        //             positions: [
-        //                 new Cesium.Cartesian3(0, 0, 0),
-        //                 new Cesium.Cartesian3(0, length, 0)
-        //             ],
-        //             width: 3,
-        //             material: Cesium.Color.GREEN,
-        //             referenceFrame: Cesium.ReferenceFrame.ENTITY
-        //         }
-        //     });
-
-        //     // Z axis (blue) - Yaw axis
-        //     viewer.entities.add({
-        //         position: entity.position,
-        //         orientation: entity.orientation,
-        //         polyline: {
-        //             positions: [
-        //                 new Cesium.Cartesian3(0, 0, 0),
-        //                 new Cesium.Cartesian3(0, 0, length)
-        //             ],
-        //             width: 3,
-        //             material: Cesium.Color.BLUE,
-        //             referenceFrame: Cesium.ReferenceFrame.ENTITY
-        //         }
-        //     });
-        // }
-
-        function updateCameraOrientation() {
-            if (liveModelEntity && liveModelEntity.orientation) {
-                // Get current entity orientation and position
-                const currentTime = Cesium.JulianDate.now();
-                const entityOrientation = liveModelEntity.orientation.getValue(currentTime);
-                const entityPosition = liveModelEntity.position.getValue(currentTime);
-
-                if (!entityOrientation || !entityPosition) return;
-
-                // Define where on the rocket to mount the camera
-                // Adjust these values to change the mounting position
-                const offset = new Cesium.Cartesian3(0, -5, 2); // Slightly behind and above
-
-                // Transform offset from model space to world space
-                const rotation = Cesium.Matrix3.fromQuaternion(entityOrientation);
-                const transformedOffset = Cesium.Matrix3.multiplyByVector(
-                    rotation,
-                    offset,
-                    new Cesium.Cartesian3()
-                );
-
-                // Position camera at the transformed offset from the entity
-                const cameraPosition = Cesium.Cartesian3.add(
-                    entityPosition,
-                    transformedOffset,
-                    new Cesium.Cartesian3()
-                );
-
-                // "Look forward" direction in model space
-                const lookDirection = new Cesium.Cartesian3(0, 0, -10); // Looking forward
-
-                // Transform look direction to world space
-                const transformedLookDirection = Cesium.Matrix3.multiplyByVector(
-                    rotation,
-                    lookDirection,
-                    new Cesium.Cartesian3()
-                );
-
-                // Calculate target point to look at
-                const lookTarget = Cesium.Cartesian3.add(
-                    cameraPosition,
-                    transformedLookDirection,
-                    new Cesium.Cartesian3()
-                );
-
-                // Set camera position and orientation
-                viewer.camera.position = cameraPosition;
-                viewer.camera.direction = Cesium.Cartesian3.normalize(
-                    Cesium.Cartesian3.subtract(lookTarget, cameraPosition, new Cesium.Cartesian3()),
-                    new Cesium.Cartesian3()
-                );
-                viewer.camera.up = Cesium.Matrix3.multiplyByVector(
-                    rotation,
-                    Cesium.Cartesian3.UNIT_Z, // Up is Z in model space
-                    new Cesium.Cartesian3()
-                );
-            }
-        }
-
-        // Initialize the live model
-        createLiveModel();
+    // Initialize the live model
+    createLiveModel();
 
 
-        function fetchData() {
-            fetch('/latest_data')
-                .then(response => response.json())
-                .then(newData => {
-                    const record = newData[0];
+    function fetchData() {
+        fetch('/latest_data')
+            .then(response => response.json())
+            .then(newData => {
+                const record = newData[0];
+                console.log(record);
 
-                    if (initialAltitude === null && record.alt !== undefined) {
-                        initialAltitude = record.alt;
-                        console.log('Initial altitude set to:', initialAltitude);
-                    }
+                if (initialAltitude === null && record.alt !== undefined) {
+                    initialAltitude = record.alt;
+                    console.log('Initial altitude set to:', initialAltitude);
+                }
 
-                    // Calculate relative altitude
-                    const relativeAltitude = record.alt - (initialAltitude - 400);
-                    console.log('Relative Altitude:', relativeAltitude);
-                    const position = {
-                        x_pos: record.x_pos,
-                        y_pos: record.y_pos,
-                        alt: relativeAltitude,
-                        eu_x: record.eu_x,
-                        eu_y: record.eu_y,
-                        eu_z: record.eu_z,
-                        lat: record.lat,
-                        lon: record.lon,
-                        teensytime: record.teensytime
-                    };
+                // // Calculate relative altitude
+                const relativeAltitude = record.alt - (initialAltitude - 1300);
+                console.log('Relative Altitude:', relativeAltitude);
+                const position = {
+                    x_pos: record.x_pos,
+                    y_pos: record.y_pos,
+                    alt: relativeAltitude,
+                    eu_x: record.eu_x,
+                    eu_y: record.eu_y,
+                    eu_z: record.eu_z,
+                    lat: record.lat,
+                    lon: record.lon,
+                    teensytime: record.teensytime
+                };
 
-                    // Update current position
-                    currentPosition = position;
-                    // console.log('Current Position:', currentPosition);
+                // Update current position
+                currentPosition = position;
+                // console.log('Current Position:', currentPosition);
 
-                    // Update live model with new position and orientation
-                    if (liveModelEntity && position.lat && position.lon) {
-                        // Create Cartesian3 position from lat/lon/alt
-                        const cartPosition = Cesium.Cartesian3.fromDegrees(
-                            position.lon,
-                            position.lat,
-                            relativeAltitude
+                // Update live model with new position and orientation
+                if (liveModelEntity && position.lat && position.lon) {
+                    // Create Cartesian3 position from lat/lon/alt
+                    const cartPosition = Cesium.Cartesian3.fromDegrees(
+                        position.lon,
+                        position.lat,
+                        relativeAltitude
+                    );
+
+                    // Update position
+                    liveModelEntity.position = cartPosition;
+
+                    // Update orientation using Euler angles
+                    if (position.eu_x !== undefined && position.eu_y !== undefined && position.eu_z !== undefined) {
+                        liveModelEntity.orientation = eulerToQuaternion(
+                            cartPosition,
+                            position.eu_x,
+                            position.eu_y,
+                            position.eu_z
                         );
 
-                        // Update position
-                        liveModelEntity.position = cartPosition;
+                        // Log orientation values for debugging
+                        // console.log('Orientation (degrees):', {
+                        //     eu_x: position.eu_x,
+                        //     eu_y: position.eu_y,
+                        //     eu_z: position.eu_z
+                        // });
 
-                        // Update orientation using Euler angles
-                        if (position.eu_x !== undefined && position.eu_y !== undefined && position.eu_z !== undefined) {
-                            liveModelEntity.orientation = eulerToQuaternion(
-                                cartPosition,
-                                position.eu_x,
-                                position.eu_y,
-                                position.eu_z
-                            );
+                        // Uncomment to add orientation axes for visualization
+                        // if (!liveModelEntity.hasOwnProperty('axesAdded') &&
+                        //     liveModelEntity.position &&
+                        //     liveModelEntity.orientation) {
 
-                            // Log orientation values for debugging
-                            // console.log('Orientation (degrees):', {
-                            //     eu_x: position.eu_x,
-                            //     eu_y: position.eu_y,
-                            //     eu_z: position.eu_z
-                            // });
-
-                            // Uncomment to add orientation axes for visualization
-                            // if (!liveModelEntity.hasOwnProperty('axesAdded')) {
-                            //     addOrientationAxes(liveModelEntity, 100);
-                            //     liveModelEntity.axesAdded = true;
-                            // }
-                        }
-
-                        // Set the camera to follow the live model
-                        if (!viewer.trackedEntity || viewer.trackedEntity !== liveModelEntity) {
-                            // First time setup - set tracked entity
-                            viewer.trackedEntity = liveModelEntity;
-
-                            // Disable the default entity tracking behavior which can interfere with our custom camera
-                            // viewer.scene.screenSpaceCameraController.enableRotate = false;
-                            // viewer.scene.screenSpaceCameraController.enableTranslate = false;
-                            // viewer.scene.screenSpaceCameraController.enableZoom = false;
-                            // viewer.scene.screenSpaceCameraController.enableTilt = false;
-                            // viewer.scene.screenSpaceCameraController.enableLook = false;
-                        }
-
-                        // Call this every update to maintain the "mounted camera" effect
-                        // updateCameraOrientation();
+                        //     // Wait a short time to ensure position is fully initialized
+                        //     setTimeout(() => {
+                        //         try {
+                        //             addOrientationAxes(liveModelEntity, 100);
+                        //             liveModelEntity.axesAdded = true;
+                        //         } catch (e) {
+                        //             console.error("Failed to add orientation axes:", e);
+                        //         }
+                        //     }, 500);
+                        // }
                     }
-                })
-                .catch(error => console.error('Error fetching data:', error));
-        }
 
-        // Start fetching data at regular intervals
-        fetchDataInterval = setInterval(fetchData, 1000);
+                    // Set the camera to follow the live model
+                    if (!viewer.trackedEntity || viewer.trackedEntity !== liveModelEntity) {
+                        // First time setup - set tracked entity
+                        viewer.trackedEntity = liveModelEntity;
 
-        // Clean up intervals when page is closed
-        window.addEventListener('beforeunload', () => {
-            clearInterval(fetchDataInterval);
-        });
-    </script>
-</body>
+                        // Disable the default entity tracking behavior which can interfere with our custom camera
+                        // viewer.scene.screenSpaceCameraController.enableRotate = false;
+                        // viewer.scene.screenSpaceCameraController.enableTranslate = false;
+                        // viewer.scene.screenSpaceCameraController.enableZoom = false;
+                        // viewer.scene.screenSpaceCameraController.enableTilt = false;
+                        // viewer.scene.screenSpaceCameraController.enableLook = false;
+                    }
+
+                    // Call this every update to maintain the "mounted camera" effect
+                    // updateCameraOrientation();
+                }
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    }
+
+    // Start fetching data at regular intervals
+    fetchDataInterval = setInterval(fetchData, 1000);
+
+    // Clean up intervals when page is closed
+    window.addEventListener('beforeunload', () => {
+        clearInterval(fetchDataInterval);
+    });
+</script>
 
 </html>
