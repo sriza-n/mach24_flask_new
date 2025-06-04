@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 """
 Mach24 Flask Application
 A Flask-based web application for sensor data collection and visualization.
@@ -15,6 +17,7 @@ from flask_sqlalchemy import SQLAlchemy
 import serial
 import serial.tools.list_ports
 import requests
+from flask_socketio import SocketIO
 
 
 # Configure logging
@@ -25,6 +28,9 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SECRET_KEY'] = 'mach24_secret_key'
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # # Define the absolute path to node_modules
 # NODE_MODULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'node_modules')
@@ -440,6 +446,9 @@ def filter_message(message):
         # Update latest data for AJAX polling
         latest_data = record_data
 
+        # Emit new data to all websocket clients
+        socketio.emit('new_data', record_data)
+
         with app.app_context():
             # Choose table based on nanoValue4
             model = SensorData if nano_value4 == 0 else SensorData0
@@ -450,7 +459,6 @@ def filter_message(message):
             new_switch_state = SwitchState(**record_data)
             db.session.add(new_switch_state)
             db.session.commit()
-
     except Exception as e:
         logger.error(f"Error processing message: {e}")
         with app.app_context():
@@ -528,6 +536,46 @@ def index():
 @app.route('/page/home')
 def home_page():
     return render_template('home.html')
+
+@app.route('/websocket')
+def websocket_page():
+    return render_template('websocket.html')
+
+
+@app.route('/test_emit')
+def test_emit():
+    """Emit a test message to all websocket clients."""
+    record_data = {
+        "date": "2025-06-02",
+        "time": "17:09:00",
+        "teensytime": "123456",
+        "record_sn": "1",
+        "voltage": 3.3,
+        "current": 0.1,
+        "teensytemp": 25.0,
+        "remote_st": 1,
+        "valve_1": 0,
+        "valve_2": 0,
+        "activ_st": 1,
+        "igni_st": 0,
+        "para_st": "A",
+        "x_pos": 10.0,
+        "y_pos": 20.0,
+        "alt": 100.0,
+        "eu_x": 0.0,
+        "eu_y": 0.0,
+        "eu_z": 0.0,
+        "acc_x": 0.0,
+        "acc_y": 0.0,
+        "acc_z": 0.0,
+        "lat": 40.0,
+        "lon": -74.0,
+        "fused_lat": 40.0,
+        "fused_lon": -74.0
+    }
+    socketio.emit('new_data', record_data)
+    return "Test data emitted!", 200
+
 
 @app.route('/page/dash1')
 def dashboard_page():
@@ -754,14 +802,10 @@ def add_headers(response):
 
 if __name__ == '__main__':
     try:
-        # Start the serial communication in a background thread
         serial_thread = threading.Thread(target=serial_communication, daemon=True)
         serial_thread.start()
-        
-        # Start the Flask server
-        logger.info("Starting Flask server on port 5000")
-        
-        app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
+        logger.info("Starting Flask-SocketIO server on port 5000 (eventlet)")
+        socketio.run(app, host='0.0.0.0', port=5000, debug=True)
     except KeyboardInterrupt:
         logger.info("Server shutting down...")
         close_serial()
