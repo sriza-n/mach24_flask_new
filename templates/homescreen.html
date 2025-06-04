@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mach24</title>
+    <!-- Local Tailwind CSS file -->
+    <link href="{{ url_for('static', filename='lib/tailwind.css') }}" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Enhanced styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .dark {
+            color-scheme: dark;
+        }
+
+        /* Smooth transitions for all elements */
+        * {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html.transitioning * {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Card hover animations */
+        .card-hover {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .card-hover:hover {
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Status indicator animations */
+        .status-indicator {
+            transition: all 0.3s ease;
+            animation: pulse-subtle 2s infinite;
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .status-indicator.active {
+            animation: pulse-active 1.5s infinite;
+        }
+
+        @keyframes pulse-active {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+
+        /* Data value animations */
+        .data-value {
+            transition: color 0.3s ease, transform 0.2s ease;
+        }
+
+        .data-value:hover {
+            transform: scale(1.01);
+        }
+
+        /* Connection status pulse */
+        .connection-online {
+            animation: pulse-online 2s infinite;
+        }
+
+        @keyframes pulse-online {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Valve state animations */
+        .valve-indicator {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .valve-open {
+            background: linear-gradient(135deg, #10b981, #059669);
+            animation: valve-flow 1.5s infinite;
+        }
+
+        .valve-closed {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        @keyframes valve-flow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+        }
+
+        /* Compact layout for single page view */
+        .compact-section {
+            min-height: 0;
+        }
+
+        .compact-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        /* Responsive grid for single page */
+        .single-page-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+            height: calc(100vh - 120px);
+        }
+
+        .status-cards {
+            grid-column: span 12;
+        }
+
+        .telemetry-grid {
+            grid-column: span 12;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .timestamp-section {
+            grid-column: span 12;
+        }
+
+        /* Compact card styles */
+        .compact-card {
+            padding: 0.75rem;
+        }
+
+        .compact-header {
+            padding: 0.5rem 0.75rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 h-screen overflow-hidden">
+    <!-- Compact Header -->
+    <header class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-full mx-auto px-4">
+            <div class="flex justify-between items-center py-2">
+                <div class="flex items-between space-x-2">
+                    <!-- <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-xs">M24</span>
+                    </div> -->
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        Mach24 Telemetry Dashboard
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div id="connection-status" class="w-2 h-2 rounded-full bg-red-500 status-indicator"></div>
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Connection</span>
+                    </div>
+                    <div class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        <span id="last-update" class="font-mono text-blue-600 dark:text-blue-400">--:--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Single Page Grid Layout -->
+    <main class="max-w-full mx-auto px-4 py-4 single-page-grid">
+        <!-- System Status Cards -->
+        <section class="status-cards">
+            <div class="grid grid-cols-4 gap-3">
+                <!-- Remote Status -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow compact-card card-hover border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center">
+                        <div id="remote-indicator" class="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center status-indicator mr-2">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Remote</p>
+                            <p id="remote-status" class="text-sm font-bold text-gray-900 dark:text-white data-value">Disconnected</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activation Status -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow compact-card card-hover border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center">
+                        <div id="activation-indicator" class="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center status-indicator mr-2">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Activation</p>
+                            <p id="activation-status" class="text-sm font-bold text-gray-900 dark:text-white data-value">Standby</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ignition Status -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow compact-card card-hover border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center">
+                        <div id="ignition-indicator" class="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center status-indicator mr-2">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Ignition</p>
+                            <p id="ignition-status" class="text-sm font-bold text-gray-900 dark:text-white data-value">Off</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parachute Status -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow compact-card card-hover border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center">
+                        <div id="parachute-indicator" class="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center status-indicator mr-2">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 2L3 9h14l-7-7zM9 11v6h2v-6H9z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Parachute</p>
+                            <p id="parachute-status" class="text-sm font-bold text-gray-900 dark:text-white data-value">Stowed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Telemetry Data Grid -->
+        <section class="telemetry-grid">
+            <!-- Row 1: Valve & Time and System & Power -->
+            <!-- Valve Control & Timestamp Combined -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow card-hover border border-gray-100 dark:border-gray-700">
+                <div class="compact-header border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-t-lg">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-4 h-4 text-purple-600 dark:text-purple-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Valve & Time
+                    </h3>
+                </div>
+                <div class="compact-card space-y-3">
+                    <!-- Valve Status -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="text-center">
+                            <div id="valve-1-indicator" class="w-8 h-8 rounded-full mx-auto valve-indicator valve-closed flex items-center justify-center mb-1">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 9a1 1 0 000 2h4a1 1 0 100-2H8z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-xs font-semibold text-gray-900 dark:text-white">Valve 1</p>
+                            <p id="valve-1" class="text-sm font-bold data-value">Closed</p>
+                        </div>
+                        <div class="text-center">
+                            <div id="valve-2-indicator" class="w-8 h-8 rounded-full mx-auto valve-indicator valve-closed flex items-center justify-center mb-1">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 9a1 1 0 000 2h4a1 1 0 100-2H8z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-xs font-semibold text-gray-900 dark:text-white">Valve 2</p>
+                            <p id="valve-2" class="text-sm font-bold data-value">Closed</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Timestamp -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                                <p class="text-xs text-gray-600 dark:text-gray-400">Date</p>
+                                <p id="system-date" class="text-sm font-mono font-bold text-gray-900 dark:text-white data-value">----/--/--</p>
+                            </div>
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                                <p class="text-xs text-gray-600 dark:text-gray-400">Time</p>
+                                <p id="system-time" class="text-sm font-mono font-bold text-gray-900 dark:text-white data-value">--:--:--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System & Power -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow card-hover border border-gray-100 dark:border-gray-700">
+                <div class="compact-header border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-t-lg">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-4 h-4 text-orange-600 dark:text-orange-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.477.859h4z"></path>
+                        </svg>
+                        System & Power
+                    </h3>
+                </div>
+                <div class="compact-card space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Voltage</p>
+                            <p id="voltage" class="text-sm font-mono font-semibold text-orange-600 dark:text-orange-400 data-value">-.-- V</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Current</p>
+                            <p id="current" class="text-sm font-mono font-semibold text-orange-600 dark:text-orange-400 data-value">-.-- A</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">MCU Temp</p>
+                            <p id="mcu-temp" class="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400 data-value">-.-- °C</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">MCU Time</p>
+                            <p id="mcu-time" class="text-sm font-mono font-semibold text-indigo-600 dark:text-indigo-400 data-value">-.--</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                        <p class="text-xs text-gray-600 dark:text-gray-400">Record #</p>
+                        <p id="record-sn" class="text-lg font-mono font-bold text-gray-900 dark:text-white data-value">-----</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: GPS & Navigation and IMU Sensor Data -->
+            <!-- GPS & Navigation -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow card-hover border border-gray-100 dark:border-gray-700">
+                <div class="compact-header border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-t-lg">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-4 h-4 text-green-600 dark:text-green-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                        </svg>
+                        GPS & Navigation
+                    </h3>
+                </div>
+                <div class="compact-card space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Latitude</p>
+                            <p id="gps-lat" class="text-sm font-mono font-semibold text-gray-900 dark:text-white data-value">---.------</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Longitude</p>
+                            <p id="gps-lon" class="text-sm font-mono font-semibold text-gray-900 dark:text-white data-value">---.------</p>
+                        </div>
+                    </div>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2">
+                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Fused GPS</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <p class="text-xs text-gray-500">Lat</p>
+                                <p id="fused-lat" class="text-xs font-mono text-gray-900 dark:text-white data-value">---.------</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Lon</p>
+                                <p id="fused-lon" class="text-xs font-mono text-gray-900 dark:text-white data-value">---.------</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IMU Data -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow card-hover border border-gray-100 dark:border-gray-700">
+                <div class="compact-header border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-t-lg">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        IMU Sensor Data
+                    </h3>
+                </div>
+                <div class="compact-card space-y-3">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Acceleration (m/s²)</p>
+                        <div class="grid grid-cols-3 gap-1">
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-500">X</p>
+                                <p id="acc-x" class="text-sm font-mono font-bold text-red-600 dark:text-red-400 data-value">-.--</p>
+                            </div>
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-500">Y</p>
+                                <p id="acc-y" class="text-sm font-mono font-bold text-red-600 dark:text-red-400 data-value">-.--</p>
+                            </div>
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-500">Z</p>
+                                <p id="acc-z" class="text-sm font-mono font-bold text-red-600 dark:text-red-400 data-value">-.--</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Euler Angles (°)</p>
+                        <div class="grid grid-cols-3 gap-1">
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-500">Head</p>
+                                <p id="euler-x" class="text-sm font-mono font-bold text-purple-600 dark:text-purple-400 data-value">-.--</p>
+                            </div>
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-500">Pitch</p>
+                                <p id="euler-y" class="text-sm font-mono font-bold text-purple-600 dark:text-purple-400 data-value">-.--</p>
+                            </div>
+                            <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-500">Roll</p>
+                                <p id="euler-z" class="text-sm font-mono font-bold text-purple-600 dark:text-purple-400 data-value">-.--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+
+<script>
+    function updateStatus(elementId, indicatorId, value, trueText = 'Active', falseText = 'Inactive', trueColor = 'bg-green-500', falseColor = 'bg-red-500') {
+        const element = document.getElementById(elementId);
+        const indicator = document.getElementById(indicatorId);
+        if (element && indicator) {
+            const isActive = parseFloat(value) === 1;
+            element.textContent = isActive ? trueText : falseText;
+            
+            // Remove all color classes and add the appropriate one
+            indicator.className = indicator.className.replace(/bg-\w+-\d+/, '');
+            indicator.classList.add(isActive ? trueColor : falseColor);
+            
+            // Add active animation class
+            if (isActive) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
+        }
+    }
+
+    function updateValveStatus(valveNumber, value) {
+        const element = document.getElementById(`valve-${valveNumber}`);
+        const indicator = document.getElementById(`valve-${valveNumber}-indicator`);
+        
+        if (element && indicator) {
+            const isOpen = parseFloat(value) === 1;
+            element.textContent = isOpen ? 'Open' : 'Closed';
+            element.className = element.className.replace(/text-\w+-\d+/, '');
+            element.classList.add(isOpen ? 'text-green-600' : 'text-gray-600');
+            
+            // Update valve indicator classes
+            indicator.className = indicator.className.replace(/valve-\w+/, '');
+            indicator.classList.add(isOpen ? 'valve-open' : 'valve-closed');
+        }
+    }
+
+    function updateElement(id, value, suffix = '') {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value + suffix;
+            
+            // Add a subtle flash animation on update
+            element.style.opacity = '0.6';
+            setTimeout(() => {
+                element.style.opacity = '1';
+            }, 150);
+        }
+    }
+
+    function fetchData() {
+        fetch('/latest_sw')
+            .then(response => response.json())
+            .then(newData => {
+                console.log('Latest data fetched:', newData);
+                const record = newData;
+
+                // Update connection status with online animation
+                const connectionStatus = document.getElementById('connection-status');
+                connectionStatus.className = 'w-2 h-2 rounded-full bg-green-500 status-indicator connection-online';
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
+                //microcontroller time and temperature 
+                const teensyTime = parseFloat(record.teensytime);
+                const teensyTemp = parseFloat(record.teensytemp);
+                updateElement('mcu-time', teensyTime.toFixed(2), ' s');
+                updateElement('mcu-temp', teensyTemp.toFixed(1), ' °C');
+
+                // date and time
+                const time = record.time;
+                const date = record.date;
+                updateElement('system-date', date);
+                updateElement('system-time', time);
+
+                // ground remote state connected or not
+                const remoteSt = parseFloat(record.remote_st);
+                updateStatus('remote-status', 'remote-indicator', remoteSt, 'Connected', 'Disconnected');
+
+                // Update valve statuses with enhanced animations
+                const valve1 = parseFloat(record.valve_1);
+                const valve2 = parseFloat(record.valve_2);
+                updateValveStatus(1, valve1);
+                updateValveStatus(2, valve2);
+
+                // activation state before ignition
+                const activSt = parseFloat(record.activ_st);
+                updateStatus('activation-status', 'activation-indicator', activSt, 'Armed', 'Standby', 'bg-yellow-500', 'bg-gray-400');
+
+                // ignition state
+                const igniSt = parseFloat(record.igni_st);
+                updateStatus('ignition-status', 'ignition-indicator', igniSt, 'Ignited', 'Off', 'bg-red-500', 'bg-gray-400');
+
+                //parachute deployment state
+                const paraSt = record.para_st;
+                updateStatus('parachute-status', 'parachute-indicator', paraSt, 'Deployed', 'Stowed', 'bg-blue-500', 'bg-gray-400');
+
+                //current, voltage, record serial number
+                const recordSn = record.record_sn;
+                const current = parseFloat(record.current);
+                const voltage = parseFloat(record.voltage);
+                updateElement('record-sn', recordSn);
+                updateElement('current', current.toFixed(2), ' A');
+                updateElement('voltage', voltage.toFixed(2), ' V');
+
+                // GPS coordinates
+                const lat = parseFloat(record.lat);
+                const lon = parseFloat(record.lon);
+                updateElement('gps-lat', lat.toFixed(6));
+                updateElement('gps-lon', lon.toFixed(6));
+
+                // imu accelerometer and euler angles
+                const accX = parseFloat(record.acc_x);
+                const accY = parseFloat(record.acc_y);
+                const accZ = parseFloat(record.acc_z);
+                updateElement('acc-x', accX.toFixed(2));
+                updateElement('acc-y', accY.toFixed(2));
+                updateElement('acc-z', accZ.toFixed(2));
+
+                const euX = parseFloat(record.eu_x);
+                const euY = parseFloat(record.eu_y);
+                const euZ = parseFloat(record.eu_z);
+                updateElement('euler-x', euX.toFixed(1));
+                updateElement('euler-y', euY.toFixed(1));
+                updateElement('euler-z', euZ.toFixed(1));
+
+                //fused GPS coordinates
+                const fusedLat = parseFloat(record.fused_lat);
+                const fusedLon = parseFloat(record.fused_lon);
+                updateElement('fused-lat', fusedLat.toFixed(6));
+                updateElement('fused-lon', fusedLon.toFixed(6));
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                const connectionStatus = document.getElementById('connection-status');
+                connectionStatus.className = 'w-2 h-2 rounded-full bg-red-500 status-indicator';
+            });
+    }
+
+    // Start fetching data at regular intervals
+    setInterval(fetchData, 1000);
+    
+    // Initial fetch
+    fetchData();
+</script>
+
+</html>

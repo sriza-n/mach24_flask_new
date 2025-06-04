@@ -537,6 +537,10 @@ def index():
 def home_page():
     return render_template('home.html')
 
+@app.route('/page/homescreen')
+def home_screen():
+    return render_template('homescreen.html')
+
 @app.route('/websocket')
 def websocket_page():
     return render_template('websocket.html')
