@@ -130,6 +130,8 @@ class SensorData(db.Model):
     lon = db.Column(db.Float, nullable=False)
     fused_lat = db.Column(db.Float, nullable=False)
     fused_lon = db.Column(db.Float, nullable=False)
+    rssi = db.Column(db.Float, nullable=False, default=0.0)  # RSSI value
+    snr = db.Column(db.Float, nullable=False, default=0.0)   # SNR value
     # gps_alt = db.Column(db.Float, nullable=False)
     
     def to_dict(self):
@@ -161,6 +163,8 @@ class SensorData(db.Model):
             "lon": self.lon,
             "fused_lat": self.fused_lat,
             "fused_lon": self.fused_lon,
+            "rssi": self.rssi,
+            "snr": self.snr,
             # "gps_alt": self.gps_alt
         }
 
@@ -193,6 +197,8 @@ class SensorData0(db.Model):
     lon = db.Column(db.Float, nullable=False)
     fused_lat = db.Column(db.Float, nullable=False)
     fused_lon = db.Column(db.Float, nullable=False)
+    rssi = db.Column(db.Float, nullable=False, default=0.0)  # RSSI value
+    snr = db.Column(db.Float, nullable=False, default=0.0)   # SNR value
     # gps_alt = db.Column(db.Float, nullable=False)
     
     def to_dict(self):
@@ -224,6 +230,8 @@ class SensorData0(db.Model):
             "lon": self.lon,
             "fused_lat": self.fused_lat,
             "fused_lon": self.fused_lon,
+            "rssi": self.rssi,
+            "snr": self.snr,
             # "gps_alt": self.gps_alt
         }
 
@@ -258,6 +266,8 @@ class SwitchState(db.Model):
     lon = db.Column(db.Float, nullable=False)
     fused_lat = db.Column(db.Float, nullable=False)
     fused_lon = db.Column(db.Float, nullable=False)
+    rssi = db.Column(db.Float, nullable=False, default=0.0)  # RSSI value
+    snr = db.Column(db.Float, nullable=False, default=0.0)   # SNR value
     
     def to_dict(self):
         """Convert model to dictionary."""
@@ -288,6 +298,8 @@ class SwitchState(db.Model):
             "lon": self.lon,
             "fused_lat": self.fused_lat,
             "fused_lon": self.fused_lon,
+            "rssi": self.rssi,
+            "snr": self.snr
         }
 
 # Create the database and tables
@@ -392,9 +404,14 @@ def connect_to_serial():
     connection_message = "Failed to connect to any available ports"
     return False
 
+origin_lat = None
+origin_lon = None
+origin_set = False
+
 def filter_message(message):
     """Process incoming messages from the serial port."""
     global latest_data
+    global origin_lat, origin_lon, origin_set
     # Handle comma-separated format instead of JSON
     try:
         # Parse comma-separated values
@@ -405,14 +422,40 @@ def filter_message(message):
         # Create record data with current timestamp
         date_time = datetime.now()
 
-        # calculate lat/lon from x_pos and y_pos
-        origin_lat = float(values[19])  # Replace with actual origin latitude
-        origin_lon = float(values[20])  # Replace with actual origin longitude
+        # Set origin coordinates only once (from first message)
+        if not origin_set:
+            origin_lat = float(values[19])  # Store first origin latitude
+            origin_lon = float(values[20])  # Store first origin longitude
+            origin_set = True
+            # logger.info(f"Origin coordinates set: lat={origin_lat}, lon={origin_lon}")
+
         x_pos = float(values[10])
         y_pos = float(values[11])
         alt = float(values[12])
         imulat, imulon ,fusedalt = xy_to_latlon(x_pos, y_pos, alt, origin_lat, origin_lon)
         # Updated record_data dictionary with all fields
+                # Fuse origin coordinates with IMU-calculated coordinates
+        # Simple weighted average fusion (you can adjust weights as needed)
+        weight_origin = 0.2  # Weight for origin coordinates
+        weight_imu = 0.8    # Weight for IMU-calculated coordinates
+        
+        fused_lat = (float(values[19]) * weight_origin) + (round(imulat,6) * weight_imu)
+        fused_lon = (float(values[20]) * weight_origin) + (round(imulon,6) * weight_imu)
+        # print(f"Fused coordinates: lat={fused_lat}, lon={fused_lon}")
+        # Add RSSI and SNR, set to 0 if not available
+        rssi = 0
+        snr = 0
+        if len(values) > 22:
+            try:
+                rssi = float(values[22])
+            except Exception:
+                rssi = 0
+        if len(values) > 23:
+            try:
+                snr = float(values[23])
+            except Exception:
+                snr = 0
+
         record_data = {
         'date': date_time.strftime('%Y-%m-%d'),
         'time': date_time.strftime('%H:%M:%S:%f')[:-3],
@@ -438,8 +481,12 @@ def filter_message(message):
         'acc_z': float(values[18]),
         'lat': float(values[19]),
         'lon': float(values[20]),
-        'fused_lat':round(imulat,6),
-        'fused_lon': round(imulon,6),
+        # 'fused_lat':round(imulat,6),
+        # 'fused_lon': round(imulon,6),
+        'fused_lat':fused_lat,
+        'fused_lon': fused_lon,
+        'rssi': rssi,
+        'snr': snr,
         # 'gps_alt': float(values[20]),
         }
    
@@ -531,7 +578,7 @@ def index():
         return redirect('/loading')
     
     logger.info(f"Index page accessed. Connection status: {connection_status}")
-    return render_template('index.html')
+    return render_template('homescreen.html')
 
 @app.route('/page/home')
 def home_page():

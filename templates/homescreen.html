@@ -354,6 +354,20 @@
                             <p id="gps-lon" class="text-sm font-mono font-semibold text-gray-900 dark:text-white data-value">---.------</p>
                         </div>
                     </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">X Pos</p>
+                            <p id="x-pos" class="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400 data-value">-.--</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Y Pos</p>
+                            <p id="y-pos" class="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400 data-value">-.--</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Altitude</p>
+                            <p id="altitude" class="text-sm font-mono font-semibold text-green-600 dark:text-green-400 data-value">-.-- m</p>
+                        </div>
+                    </div>
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-2">
                         <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Fused GPS</p>
                         <div class="grid grid-cols-2 gap-2">
@@ -377,7 +391,7 @@
                         <svg class="w-4 h-4 text-blue-600 dark:text-blue-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        IMU Sensor Data
+                        IMU & Signal
                     </h3>
                 </div>
                 <div class="compact-card space-y-3">
@@ -412,6 +426,19 @@
                             <div class="text-center bg-gray-50 dark:bg-gray-700/50 rounded p-1">
                                 <p class="text-xs text-gray-500">Roll</p>
                                 <p id="euler-z" class="text-sm font-mono font-bold text-purple-600 dark:text-purple-400 data-value">-.--</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2">
+                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Signal Quality</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-600 dark:text-gray-400">RSSI</p>
+                                <p id="rssi" class="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 data-value">-- dBm</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded p-1">
+                                <p class="text-xs text-gray-600 dark:text-gray-400">SNR</p>
+                                <p id="snr" class="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 data-value">-- dB</p>
                             </div>
                         </div>
                     </div>
@@ -551,6 +578,20 @@
                 const fusedLon = parseFloat(record.fused_lon);
                 updateElement('fused-lat', fusedLat.toFixed(6));
                 updateElement('fused-lon', fusedLon.toFixed(6));
+
+                // Position and altitude
+                const xPos = parseFloat(record.x_pos);
+                const yPos = parseFloat(record.y_pos);
+                const altitude = parseFloat(record.alt);
+                updateElement('x-pos', xPos.toFixed(2));
+                updateElement('y-pos', yPos.toFixed(2));
+                updateElement('altitude', altitude.toFixed(2), ' m');
+
+                // Signal quality
+                const rssi = parseFloat(record.rssi);
+                const snr = parseFloat(record.snr);
+                updateElement('rssi', rssi.toFixed(0), ' dBm');
+                updateElement('snr', snr.toFixed(0), ' dB');
             })
             .catch(error => {
                 console.error('Error fetching data:', error);

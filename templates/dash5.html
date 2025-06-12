@@ -46,9 +46,13 @@
 
 <body>
     <div id="cesiumContainer" class="w-screen h-screen relative">
-        <div class="absolute top-0 left-0 z-50 bg-blue-500 text-white px-4 rounded">
+        <!-- <div class="absolute top-0 left-0 z-50 bg-blue-500 text-white px-4 rounded">
             <p>Absolute child</p>
-        </div>
+        </div> -->
+        <button id="toggleHeadingFollowBtn"
+            style="position:absolute;top:16px;left:16px;z-index:1000;padding:8px 16px;background:#222;color:#fff;border:none;border-radius:4px;cursor:pointer;">
+            Follow Heading: ON
+        </button>
     </div>
 
     <script>

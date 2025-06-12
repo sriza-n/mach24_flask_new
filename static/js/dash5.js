@@ -232,3 +232,61 @@ function checkTerrainLoaded() {
 
 // Start checking if terrain is loaded
 checkTerrainLoaded();
+
+// Helper to get heading (Euler X) at current time
+function getCurrentHeading(julianDate) {
+    // Find the closest index for the current time
+    const elapsedSeconds = Cesium.JulianDate.secondsDifference(julianDate, start);
+    const idx = Math.max(0, Math.min(Math.round(elapsedSeconds), euler.length - 1));
+    // Euler X is heading in degrees
+    return euler[idx][0];
+}
+
+// Store previous heading for smooth interpolation
+let prevHeadingRad = null;
+
+// Toggle for camera heading follow
+let followHeading = true;
+const toggleBtn = document.getElementById('toggleHeadingFollowBtn');
+if (toggleBtn) {
+    toggleBtn.addEventListener('click', function () {
+        followHeading = !followHeading;
+        toggleBtn.textContent = `Follow Heading: ${followHeading ? 'ON' : 'OFF'}`;
+    });
+}
+
+// Update camera heading to match model's heading (smoothly)
+viewer.clock.onTick.addEventListener(function(clock) {
+    if (!followHeading) return;
+    const currentTime = clock.currentTime;
+    const position = positionProperty.getValue(currentTime);
+    if (!position) return;
+
+    const headingDeg = getCurrentHeading(currentTime);
+    const headingRad = Cesium.Math.toRadians(headingDeg);
+
+    // Smooth interpolation
+    if (prevHeadingRad === null) prevHeadingRad = headingRad;
+    const lerpFactor = 0.15;
+    let smoothHeading = Cesium.Math.lerp(prevHeadingRad, headingRad, lerpFactor);
+
+    // Handle wrap-around at 2*PI
+    if (Math.abs(smoothHeading - headingRad) > Math.PI) {
+        if (smoothHeading > headingRad) {
+            smoothHeading -= 2 * Math.PI;
+        } else {
+            smoothHeading += 2 * Math.PI;
+        }
+        smoothHeading = Cesium.Math.lerp(smoothHeading, headingRad, lerpFactor);
+    }
+
+    prevHeadingRad = smoothHeading;
+
+    const range = 50;
+    const pitch = Cesium.Math.toRadians(-30);
+
+    viewer.camera.lookAt(
+        position,
+        new Cesium.HeadingPitchRange(smoothHeading, pitch, range)
+    );
+});
