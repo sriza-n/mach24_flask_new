@@ -110,40 +110,45 @@ class SensorData(db.Model):
     record_sn = db.Column(db.String(20), nullable=False)
     voltage = db.Column(db.Float, nullable=False)
     current = db.Column(db.Float, nullable=False)
-    teensytemp = db.Column(db.Float, nullable=False)
     remote_st = db.Column(db.Integer, nullable=False)
     valve_1 = db.Column(db.Integer, nullable=False)
     valve_2 = db.Column(db.Integer, nullable=False)
     activ_st = db.Column(db.Integer, nullable=False)
     igni_st = db.Column(db.Integer, nullable=False)
-    para_st = db.Column(db.String(20), nullable=False)
+    para_st = db.Column(db.Integer, nullable=False)
     x_pos = db.Column(db.Float, nullable=False)
     y_pos = db.Column(db.Float, nullable=False)
     alt = db.Column(db.Float, nullable=False)
     eu_x = db.Column(db.Float, nullable=False)
     eu_y = db.Column(db.Float, nullable=False)
     eu_z = db.Column(db.Float, nullable=False)
-    acc_x = db.Column(db.Float, nullable=False)
-    acc_y = db.Column(db.Float, nullable=False)
-    acc_z = db.Column(db.Float, nullable=False)
+    acc = db.Column(db.Float, nullable=False)  # Changed from acc_x, acc_y, acc_z to single acc
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
     fused_lat = db.Column(db.Float, nullable=False)
     fused_lon = db.Column(db.Float, nullable=False)
-    rssi = db.Column(db.Float, nullable=False, default=0.0)  # RSSI value
-    snr = db.Column(db.Float, nullable=False, default=0.0)   # SNR value
-    # gps_alt = db.Column(db.Float, nullable=False)
+    rssi = db.Column(db.Float, nullable=False, default=0.0)
+    snr = db.Column(db.Float, nullable=False, default=0.0)
+    # New fields from your serial data
+    p1 = db.Column(db.Float, nullable=False, default=0.0)
+    p2 = db.Column(db.Float, nullable=False, default=0.0)
+    load = db.Column(db.Float, nullable=False, default=0.0)
+    servo1_angle = db.Column(db.Integer, nullable=False, default=0)
+    servo2_angle = db.Column(db.Integer, nullable=False, default=0)
+    config_mode = db.Column(db.Integer, nullable=False, default=0)
+    test_mode = db.Column(db.Integer, nullable=False, default=0)
+    connection_state = db.Column(db.Integer, nullable=False, default=0)
     
     def to_dict(self):
         """Convert model to dictionary."""
         return {
+            "id": self.id,
             "date": self.date,
             "time": self.time,
             "teensytime": self.teensytime,
             "record_sn": self.record_sn,
             "voltage": self.voltage,
             "current": self.current,
-            "teensytemp": self.teensytemp,
             "remote_st": self.remote_st,
             "valve_1": self.valve_1,
             "valve_2": self.valve_2,
@@ -156,16 +161,21 @@ class SensorData(db.Model):
             "eu_x": self.eu_x,
             "eu_y": self.eu_y,
             "eu_z": self.eu_z,
-            "acc_x": self.acc_x,
-            "acc_y": self.acc_y,
-            "acc_z": self.acc_z,
+            "acc": self.acc,
             "lat": self.lat,
             "lon": self.lon,
             "fused_lat": self.fused_lat,
             "fused_lon": self.fused_lon,
             "rssi": self.rssi,
             "snr": self.snr,
-            # "gps_alt": self.gps_alt
+            "p1": self.p1,
+            "p2": self.p2,
+            "load": self.load,
+            "servo1_angle": self.servo1_angle,
+            "servo2_angle": self.servo2_angle,
+            "config_mode": self.config_mode,
+            "test_mode": self.test_mode,
+            "connection_state": self.connection_state
         }
 
 class SensorData0(db.Model):
@@ -177,40 +187,45 @@ class SensorData0(db.Model):
     record_sn = db.Column(db.String(20), nullable=False)
     voltage = db.Column(db.Float, nullable=False)
     current = db.Column(db.Float, nullable=False)
-    teensytemp = db.Column(db.Float, nullable=False)
     remote_st = db.Column(db.Integer, nullable=False)
     valve_1 = db.Column(db.Integer, nullable=False)
     valve_2 = db.Column(db.Integer, nullable=False)
     activ_st = db.Column(db.Integer, nullable=False)
     igni_st = db.Column(db.Integer, nullable=False)
-    para_st = db.Column(db.String(20), nullable=False)
+    para_st = db.Column(db.Integer, nullable=False)
     x_pos = db.Column(db.Float, nullable=False)
     y_pos = db.Column(db.Float, nullable=False)
     alt = db.Column(db.Float, nullable=False)
     eu_x = db.Column(db.Float, nullable=False)
     eu_y = db.Column(db.Float, nullable=False)
     eu_z = db.Column(db.Float, nullable=False)
-    acc_x = db.Column(db.Float, nullable=False)
-    acc_y = db.Column(db.Float, nullable=False)
-    acc_z = db.Column(db.Float, nullable=False)
+    acc = db.Column(db.Float, nullable=False)  # Changed from acc_x, acc_y, acc_z to single acc
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
     fused_lat = db.Column(db.Float, nullable=False)
     fused_lon = db.Column(db.Float, nullable=False)
-    rssi = db.Column(db.Float, nullable=False, default=0.0)  # RSSI value
-    snr = db.Column(db.Float, nullable=False, default=0.0)   # SNR value
-    # gps_alt = db.Column(db.Float, nullable=False)
+    rssi = db.Column(db.Float, nullable=False, default=0.0)
+    snr = db.Column(db.Float, nullable=False, default=0.0)
+    # New fields from your serial data
+    p1 = db.Column(db.Float, nullable=False, default=0.0)
+    p2 = db.Column(db.Float, nullable=False, default=0.0)
+    load = db.Column(db.Float, nullable=False, default=0.0)
+    servo1_angle = db.Column(db.Integer, nullable=False, default=0)
+    servo2_angle = db.Column(db.Integer, nullable=False, default=0)
+    config_mode = db.Column(db.Integer, nullable=False, default=0)
+    test_mode = db.Column(db.Integer, nullable=False, default=0)
+    connection_state = db.Column(db.Integer, nullable=False, default=0)
     
     def to_dict(self):
         """Convert model to dictionary."""
         return {
-"date": self.date,
+            "id": self.id,
+            "date": self.date,
             "time": self.time,
             "teensytime": self.teensytime,
             "record_sn": self.record_sn,
             "voltage": self.voltage,
             "current": self.current,
-            "teensytemp": self.teensytemp,
             "remote_st": self.remote_st,
             "valve_1": self.valve_1,
             "valve_2": self.valve_2,
@@ -223,19 +238,22 @@ class SensorData0(db.Model):
             "eu_x": self.eu_x,
             "eu_y": self.eu_y,
             "eu_z": self.eu_z,
-            "acc_x": self.acc_x,
-            "acc_y": self.acc_y,
-            "acc_z": self.acc_z,
+            "acc": self.acc,
             "lat": self.lat,
             "lon": self.lon,
             "fused_lat": self.fused_lat,
             "fused_lon": self.fused_lon,
             "rssi": self.rssi,
             "snr": self.snr,
-            # "gps_alt": self.gps_alt
+            "p1": self.p1,
+            "p2": self.p2,
+            "load": self.load,
+            "servo1_angle": self.servo1_angle,
+            "servo2_angle": self.servo2_angle,
+            "config_mode": self.config_mode,
+            "test_mode": self.test_mode,
+            "connection_state": self.connection_state
         }
-
-# store switch states
 
 class SwitchState(db.Model):
     """Model for storing switch and valve state data."""
@@ -246,39 +264,45 @@ class SwitchState(db.Model):
     record_sn = db.Column(db.String(20), nullable=False)
     voltage = db.Column(db.Float, nullable=False)
     current = db.Column(db.Float, nullable=False)
-    teensytemp = db.Column(db.Float, nullable=False)
     remote_st = db.Column(db.Integer, nullable=False)
     valve_1 = db.Column(db.Integer, nullable=False)
     valve_2 = db.Column(db.Integer, nullable=False)
     activ_st = db.Column(db.Integer, nullable=False)
     igni_st = db.Column(db.Integer, nullable=False)
-    para_st = db.Column(db.String(20), nullable=False)
+    para_st = db.Column(db.Integer, nullable=False)
     x_pos = db.Column(db.Float, nullable=False)
     y_pos = db.Column(db.Float, nullable=False)
     alt = db.Column(db.Float, nullable=False)
     eu_x = db.Column(db.Float, nullable=False)
     eu_y = db.Column(db.Float, nullable=False)
     eu_z = db.Column(db.Float, nullable=False)
-    acc_x = db.Column(db.Float, nullable=False)
-    acc_y = db.Column(db.Float, nullable=False)
-    acc_z = db.Column(db.Float, nullable=False)
+    acc = db.Column(db.Float, nullable=False)  # Changed from acc_x, acc_y, acc_z to single acc
     lat = db.Column(db.Float, nullable=False)
     lon = db.Column(db.Float, nullable=False)
     fused_lat = db.Column(db.Float, nullable=False)
     fused_lon = db.Column(db.Float, nullable=False)
-    rssi = db.Column(db.Float, nullable=False, default=0.0)  # RSSI value
-    snr = db.Column(db.Float, nullable=False, default=0.0)   # SNR value
+    rssi = db.Column(db.Float, nullable=False, default=0.0)
+    snr = db.Column(db.Float, nullable=False, default=0.0)
+    # New fields from your serial data
+    p1 = db.Column(db.Float, nullable=False, default=0.0)
+    p2 = db.Column(db.Float, nullable=False, default=0.0)
+    load = db.Column(db.Float, nullable=False, default=0.0)
+    servo1_angle = db.Column(db.Integer, nullable=False, default=0)
+    servo2_angle = db.Column(db.Integer, nullable=False, default=0)
+    config_mode = db.Column(db.Integer, nullable=False, default=0)
+    test_mode = db.Column(db.Integer, nullable=False, default=0)
+    connection_state = db.Column(db.Integer, nullable=False, default=0)
     
     def to_dict(self):
         """Convert model to dictionary."""
         return {
+            "id": self.id,
             "date": self.date,
             "time": self.time,
             "teensytime": self.teensytime,
             "record_sn": self.record_sn,
             "voltage": self.voltage,
             "current": self.current,
-            "teensytemp": self.teensytemp,
             "remote_st": self.remote_st,
             "valve_1": self.valve_1,
             "valve_2": self.valve_2,
@@ -291,15 +315,21 @@ class SwitchState(db.Model):
             "eu_x": self.eu_x,
             "eu_y": self.eu_y,
             "eu_z": self.eu_z,
-            "acc_x": self.acc_x,
-            "acc_y": self.acc_y,
-            "acc_z": self.acc_z,
+            "acc": self.acc,
             "lat": self.lat,
             "lon": self.lon,
             "fused_lat": self.fused_lat,
             "fused_lon": self.fused_lon,
             "rssi": self.rssi,
-            "snr": self.snr
+            "snr": self.snr,
+            "p1": self.p1,
+            "p2": self.p2,
+            "load": self.load,
+            "servo1_angle": self.servo1_angle,
+            "servo2_angle": self.servo2_angle,
+            "config_mode": self.config_mode,
+            "test_mode": self.test_mode,
+            "connection_state": self.connection_state
         }
 
 # Create the database and tables
@@ -424,8 +454,8 @@ def filter_message(message):
 
         # Set origin coordinates only once (from first message)
         if not origin_set:
-            origin_lat = float(values[19])  # Store first origin latitude
-            origin_lon = float(values[20])  # Store first origin longitude
+            origin_lat = float(values[17])  # Store first origin latitude
+            origin_lon = float(values[18])  # Store first origin longitude
             origin_set = True
             # logger.info(f"Origin coordinates set: lat={origin_lat}, lon={origin_lon}")
 
@@ -439,22 +469,19 @@ def filter_message(message):
         weight_origin = 0.2  # Weight for origin coordinates
         weight_imu = 0.8    # Weight for IMU-calculated coordinates
         
-        fused_lat = (float(values[19]) * weight_origin) + (round(imulat,6) * weight_imu)
-        fused_lon = (float(values[20]) * weight_origin) + (round(imulon,6) * weight_imu)
+        fused_lat = (float(values[17]) * weight_origin) + (round(imulat,6) * weight_imu)
+        fused_lon = (float(values[18]) * weight_origin) + (round(imulon,6) * weight_imu)
         # print(f"Fused coordinates: lat={fused_lat}, lon={fused_lon}")
         # Add RSSI and SNR, set to 0 if not available
-        rssi = 0
-        snr = 0
-        if len(values) > 22:
-            try:
-                rssi = float(values[22])
-            except Exception:
-                rssi = 0
-        if len(values) > 23:
-            try:
-                snr = float(values[23])
-            except Exception:
-                snr = 0
+        # rssi = 0
+        # snr = 0
+        # if len(values) > 22:
+        #     try:
+        #         rssi = float(values[22])
+        #         snr = float(values[23])
+        #     except Exception:
+        #         rssi = 0
+        #         snr = 0
 
         record_data = {
         'date': date_time.strftime('%Y-%m-%d'),
@@ -463,31 +490,35 @@ def filter_message(message):
         'record_sn': values[0],
         'voltage': float(values[9]),
         'current': float(values[8]),
-        'teensytemp': float(values[21]),
-        'remote_st': values[2],
+        'remote_st': int(values[2]),
         'valve_1': int(values[3]),
         'valve_2': int(values[4]),
         'activ_st': int(values[5]),
         'igni_st': int(values[6]),
-        'para_st': values[7],
+        'para_st': int(values[7]),
         'x_pos': float(values[10]),
         'y_pos': float(values[11]),
         'alt': float(values[12]),
         'eu_x': float(values[13]),
         'eu_y': float(values[14]),
         'eu_z': float(values[15]),
-        'acc_x': float(values[16]),
-        'acc_y': float(values[17]),
-        'acc_z': float(values[18]),
-        'lat': float(values[19]),
-        'lon': float(values[20]),
+        'acc': float(values[16]),
+        'lat': float(values[17]),
+        'lon': float(values[18]),
         # 'fused_lat':round(imulat,6),
         # 'fused_lon': round(imulon,6),
         'fused_lat':fused_lat,
         'fused_lon': fused_lon,
-        'rssi': rssi,
-        'snr': snr,
-        # 'gps_alt': float(values[20]),
+        'rssi': float(values[19]),
+        'snr': float(values[20]),
+        'p1': float(values[21]),
+        'p2': float(values[22]), 
+        'load': float(values[23]) ,    
+        'servo1_angle': int(values[24]) , 
+        'servo2_angle': int(values[25]), 
+        'config_mode': int(values[26]), 
+        'test_mode': int(values[27]),  
+        'connection_state': int(values[28]),
         }
    
         # Update latest data for AJAX polling
@@ -792,7 +823,275 @@ def video_feed():
         logger.error(f"Unexpected error in video_feed: {e}")
         return f"Error: {str(e)}", 500
 
+# --------------------------------post method for adding data---------------------------------
+@app.route('/add_data', methods=['POST'])
+def add_data():
+    """API endpoint to manually add sensor data to the database."""
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = [
+            'teensytime', 'record_sn', 'voltage', 'current', 'teensytemp',
+            'remote_st', 'valve_1', 'valve_2', 'activ_st', 'igni_st', 'para_st',
+            'x_pos', 'y_pos', 'alt', 'eu_x', 'eu_y', 'eu_z',
+            'acc_x', 'acc_y', 'acc_z', 'lat', 'lon', 'snr', 'rssi'
+        ]
+        
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({
+                'success': False, 
+                'message': f'Missing required fields: {", ".join(missing_fields)}'
+            }), 400
+        
+        # Create record data with current timestamp if not provided
+        current_time = datetime.now()
 
+        global origin_lat, origin_lon, origin_set
+         # Set origin coordinates only once (from first message)
+        if not origin_set:
+            origin_lat = float(data['lat'])  # Store first origin latitude
+            origin_lon = float(data['lon'])  # Store first origin longitude
+            origin_set = True
+            # logger.info(f"Origin coordinates set: lat={origin_lat}, lon={origin_lon}")
+
+        x_pos = float(data['x_pos'])
+        y_pos = float(data['y_pos'])
+        alt = float(data['alt'])
+        imulat, imulon ,fusedalt = xy_to_latlon(x_pos, y_pos, alt, origin_lat, origin_lon)
+        # Updated record_data dictionary with all fields
+                # Fuse origin coordinates with IMU-calculated coordinates
+        # Simple weighted average fusion (you can adjust weights as needed)
+        weight_origin = 0.2  # Weight for origin coordinates
+        weight_imu = 0.8    # Weight for IMU-calculated coordinates
+        
+        fused_lat = (float(data['lat']) * weight_origin) + (round(imulat,6) * weight_imu)
+        fused_lon = (float(data['lon']) * weight_origin) + (round(imulon,6) * weight_imu)
+ 
+        record_data = {
+            'date': data.get('date', current_time.strftime('%Y-%m-%d')),
+            'time': data.get('time', current_time.strftime('%H:%M:%S:%f')[:-3]),
+            'teensytime': data['teensytime'],
+            'record_sn': data['record_sn'],
+            'voltage': float(data['voltage']),
+            'current': float(data['current']),
+            'teensytemp': float(data['teensytemp']),
+            'remote_st': int(data['remote_st']),
+            'valve_1': int(data['valve_1']),
+            'valve_2': int(data['valve_2']),
+            'activ_st': int(data['activ_st']),
+            'igni_st': int(data['igni_st']),
+            'para_st': int(data['para_st']),
+            'x_pos': float(data['x_pos']),
+            'y_pos': float(data['y_pos']),
+            'alt': float(data['alt']),
+            'eu_x': float(data['eu_x']),
+            'eu_y': float(data['eu_y']),
+            'eu_z': float(data['eu_z']),
+            'acc_x': float(data['acc_x']),
+            'acc_y': float(data['acc_y']),
+            'acc_z': float(data['acc_z']),
+            'lat': float(data['lat']),
+            'lon': float(data['lon']),
+            'fused_lat': fused_lat,
+            'fused_lon': fused_lon,
+            'rssi': float(data.get('rssi', 0.0)),  # Default to 0.0 if not provided
+            'snr': float(data.get('snr', 0.0))  
+        }
+        
+        # Determine which table to use based on igni_st value (similar to serial logic)
+        igni_st_value = int(data['igni_st'])
+        model = SensorData if igni_st_value == 0 else SensorData0
+        
+        # Create and save the new record
+        new_record = model(**record_data)
+        db.session.add(new_record)
+        
+        # Also add to switch state table
+        new_switch_state = SwitchState(**record_data)
+        db.session.add(new_switch_state)
+        
+        db.session.commit()
+        
+        # Update latest data for real-time updates
+        global latest_data
+        latest_data = record_data
+        
+        # Emit new data to websocket clients
+        socketio.emit('new_data', record_data)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Data added successfully',
+            'data': record_data
+        }), 201
+        
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Invalid data type: {str(e)}'
+        }), 400
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error adding data: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Database error: {str(e)}'
+        }), 500
+    
+# ----------------------------------------data addition by socket io---------------------------------
+
+@socketio.on('add_data')
+def handle_add_data(data):
+    """SocketIO event handler to add sensor data to the database."""
+    try:
+        if not data:
+            socketio.emit('add_data_response', {
+                'success': False, 
+                'message': 'No data provided'
+            })
+            return
+        
+        # Validate required fields
+        required_fields = [
+            'teensytime', 'record_sn', 'voltage', 'current', 'teensytemp',
+            'remote_st', 'valve_1', 'valve_2', 'activ_st', 'igni_st', 'para_st',
+            'x_pos', 'y_pos', 'alt', 'eu_x', 'eu_y', 'eu_z',
+            'acc_x', 'acc_y', 'acc_z', 'lat', 'lon', 'snr', 'rssi'
+        ]
+        
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            socketio.emit('add_data_response', {
+                'success': False, 
+                'message': f'Missing required fields: {", ".join(missing_fields)}'
+            })
+            return
+        
+        # Create record data with current timestamp if not provided
+        current_time = datetime.now()
+
+        global origin_lat, origin_lon, origin_set
+        
+        # Set origin coordinates only once (from first message)
+        if not origin_set:
+            origin_lat = float(data['lat'])
+            origin_lon = float(data['lon'])
+            origin_set = True
+            logger.info(f"Origin coordinates set via SocketIO: lat={origin_lat}, lon={origin_lon}")
+
+        x_pos = float(data['x_pos'])
+        y_pos = float(data['y_pos'])
+        alt = float(data['alt'])
+        imulat, imulon, fusedalt = xy_to_latlon(x_pos, y_pos, alt, origin_lat, origin_lon)
+        
+        # Fuse origin coordinates with IMU-calculated coordinates
+        weight_origin = 0.2
+        weight_imu = 0.8
+        
+        fused_lat = (float(data['lat']) * weight_origin) + (round(imulat, 6) * weight_imu)
+        fused_lon = (float(data['lon']) * weight_origin) + (round(imulon, 6) * weight_imu)
+ 
+        record_data = {
+            'date': data.get('date', current_time.strftime('%Y-%m-%d')),
+            'time': data.get('time', current_time.strftime('%H:%M:%S:%f')[:-3]),
+            'teensytime': data['teensytime'],
+            'record_sn': data['record_sn'],
+            'voltage': float(data['voltage']),
+            'current': float(data['current']),
+            'remote_st': int(data['remote_st']),
+            'valve_1': int(data['valve_1']),
+            'valve_2': int(data['valve_2']),
+            'activ_st': int(data['activ_st']),
+            'igni_st': int(data['igni_st']),
+            'para_st': int(data['para_st']),
+            'x_pos': float(data['x_pos']),
+            'y_pos': float(data['y_pos']),
+            'alt': float(data['alt']),
+            'eu_x': float(data['eu_x']),
+            'eu_y': float(data['eu_y']),
+            'eu_z': float(data['eu_z']),
+            'acc_x': float(data['acc_x']),
+            'acc_y': float(data['acc_y']),
+            'acc_z': float(data['acc_z']),
+            'lat': float(data['lat']),
+            'lon': float(data['lon']),
+            'fused_lat': fused_lat,
+            'fused_lon': fused_lon,
+            'rssi': float(data.get('rssi', 0.0)),
+            'snr': float(data.get('snr', 0.0))
+        }
+        
+        # Determine which table to use based on igni_st value
+        igni_st_value = int(data['igni_st'])
+        model = SensorData if igni_st_value == 0 else SensorData0
+        
+        # Create and save the new record
+        new_record = model(**record_data)
+        db.session.add(new_record)
+        
+        # Also add to switch state table
+        new_switch_state = SwitchState(**record_data)
+        db.session.add(new_switch_state)
+        
+        db.session.commit()
+        
+        # Update latest data for real-time updates
+        global latest_data
+        latest_data = record_data
+        
+        # Emit success response to the sender
+        socketio.emit('add_data_response', {
+            'success': True,
+            'message': 'Data added successfully via SocketIO',
+            'data': record_data
+        })
+        
+        # Emit new data to all connected clients (including the sender)
+        socketio.emit('new_data', record_data)
+        
+        logger.info(f"Data added successfully via SocketIO: record_sn={data['record_sn']}")
+        
+    except ValueError as e:
+        db.session.rollback()
+        error_msg = f'Invalid data type: {str(e)}'
+        logger.error(f"SocketIO data validation error: {error_msg}")
+        socketio.emit('add_data_response', {
+            'success': False,
+            'message': error_msg
+        })
+    except Exception as e:
+        db.session.rollback()
+        error_msg = f'Database error: {str(e)}'
+        logger.error(f"SocketIO database error: {error_msg}")
+        socketio.emit('add_data_response', {
+            'success': False,
+            'message': error_msg
+        })
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle new WebSocket connections."""
+    logger.info(f"Client connected: {request.sid}")
+    socketio.emit('connection_response', {
+        'success': True,
+        'message': 'Connected to Mach24 server',
+        'sid': request.sid
+    })
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle WebSocket disconnections."""
+    logger.info(f"Client disconnected: {request.sid}")
+
+
+    
 # ---------------------------------routes for database management---------------------------------
 @app.route('/databases', methods=['GET'])
 def list_databases():
@@ -853,6 +1152,23 @@ def add_headers(response):
 
 if __name__ == '__main__':
     try:
+                # ASCII Art Banner
+        # ASCII Art Banner
+        print("\n" * 2)
+        print("███╗   ███╗ █████╗  ██████╗██╗  ██╗  ██████╗ ██╗  ██╗")
+        print("████╗ ████║██╔══██╗██╔════╝██║  ██║  ╚════██╗██║  ██║")
+        print("██╔████╔██║███████║██║     ███████║  █████╔╝ ███████║")
+        print("██║╚██╔╝██║██╔══██║██║     ██╔══██║  ██╔═══╝ ╚════██║")
+        print("██║ ╚═╝ ██║██║  ██║╚██████╗██║  ██║  ███████╗     ██║")
+        print("╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝  ╚══════╝     ╚═╝")
+        print()
+        print(" ██████╗ ██████╗ ██████╗ ██╗████████╗ █████╗ ██╗     ███████╗")
+        print("██╔═══██╗██╔══██╗██╔══██╗██║╚══██╔══╝██╔══██╗██║     ██╔════╝")
+        print("██║   ██║██████╔╝██████╔╝██║   ██║   ███████║██║     ███████╗")
+        print("██║   ██║██╔══██╗██╔══██╗██║   ██║   ██╔══██║██║     ╚════██║")
+        print("╚██████╔╝██║  ██║██████╔╝██║   ██║   ██║  ██║███████╗███████║")
+        print(" ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝")
+        print()
         serial_thread = threading.Thread(target=serial_communication, daemon=True)
         serial_thread.start()
         logger.info("Starting Flask-SocketIO server on port 5000 (eventlet)")
