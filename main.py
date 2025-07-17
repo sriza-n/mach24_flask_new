@@ -609,7 +609,7 @@ def index():
         return redirect('/loading')
     
     logger.info(f"Index page accessed. Connection status: {connection_status}")
-    return render_template('homescreen.html')
+    return render_template('home.html')
 
 @app.route('/page/home')
 def home_page():

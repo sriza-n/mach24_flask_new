@@ -40,6 +40,19 @@
     .dark ::-webkit-scrollbar-thumb:hover {
         background: #9CA3AF;
     }
+
+    /* Dimmed state styles */
+    .section-dimmed {
+        opacity: 0.4;
+        filter: grayscale(70%);
+        transition: opacity 0.5s ease, filter 0.5s ease;
+    }
+
+    .section-active {
+        opacity: 1;
+        filter: grayscale(0%);
+        transition: opacity 0.5s ease, filter 0.5s ease;
+    }
 </style>
 
 <body
@@ -91,7 +104,7 @@
         </div>
 
         <!-- <div class="h-5 sm:h-3"></div> -->
-        <div class="w-full  my-4">
+        <div class="w-full  my-5">
             <!-- Status Cards - Responsive Grid -->
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 <!-- Remote Status -->
@@ -228,109 +241,113 @@
             <!-- Main Content - Responsive Layout -->
             <div class="flex flex-col lg:flex-row items-stretch gap-2 w-full">
                 <!-- State0: Main telemetry data grid -->
-                <div id="state0"
+                <div
                     class="lg:basis-2/3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-3 sm:mb-4">Flight
-                        Telemetry
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                        <!-- Altitude Card -->
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 sm:p-4 text-white">
-                            <div class="flex items-center justify-between">
-                                <div class="min-w-0">
-                                    <p class="text-blue-100 text-xs sm:text-sm font-medium">Altitude</p>
-                                    <p id="altitude-value" class="text-xl sm:text-2xl font-bold truncate">0</p>
-                                    <p class="text-blue-100 text-xs">meters</p>
-                                </div>
-                                <svg class="w-6 h-6 sm:w-8 sm:h-8 text-blue-200 flex-shrink-0" fill="currentColor"
-                                    viewBox="0 0 20 20">
-                                    <path d="M10 2L3 9h14l-7-7z"></path>
-                                </svg>
-                            </div>
-                        </div>
-
-                        <!-- GPS Coordinates -->
-                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-4 text-white">
-                            <div>
-                                <p class="text-green-100 text-xs sm:text-sm font-medium">GPS Position</p>
-                                <p id="lat-value" class="text-xs sm:text-sm font-bold truncate">0.000000</p>
-                                <p id="lon-value" class="text-xs sm:text-sm font-bold truncate">0.000000</p>
-                                <p class="text-green-100 text-xs">lat, lon</p>
-                            </div>
-                        </div>
-
-                        <!-- Acceleration -->
-                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 sm:p-4 text-white">
-                            <div>
-                                <p class="text-purple-100 text-xs sm:text-sm font-medium">Acceleration</p>
-                                <p id="acc-value" class="text-xl sm:text-2xl font-bold">0.0</p>
-                                <p class="text-purple-100 text-xs">m/s²</p>
-                            </div>
-                        </div>
-
-                        <!-- Euler Angles -->
-                        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 sm:p-4 text-white">
-                            <div>
-                                <p class="text-orange-100 text-xs sm:text-sm font-medium">Euler X/Y/Z</p>
-                                <div class="flex space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold">
-                                    <span id="eu-x-value" class="truncate">0</span>
-                                    <span id="eu-y-value" class="truncate">0</span>
-                                    <span id="eu-z-value" class="truncate">0</span>
-                                </div>
-                                <p class="text-orange-100 text-xs">degrees</p>
-                            </div>
-                        </div>
-
-                        <!-- Position -->
-                        <div class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg p-3 sm:p-4 text-white">
-                            <div>
-                                <p class="text-teal-100 text-xs sm:text-sm font-medium">Position X/Y</p>
-                                <div class="flex space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold">
-                                    <span id="x-pos-value" class="truncate">0</span>
-                                    <span id="y-pos-value" class="truncate">0</span>
-                                </div>
-                                <p class="text-teal-100 text-xs">meters</p>
-                            </div>
-                        </div>
-
-                        <!-- Signal Quality -->
-                        <div class="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg p-3 sm:p-4 text-white">
-                            <div>
-                                <p class="text-gray-100 text-xs sm:text-sm font-medium">Signal</p>
-                                <div class="flex justify-between text-xs sm:text-sm font-bold">
-                                    <div>
-                                        <span class="text-xs text-gray-200">RSSI:</span>
-                                        <span id="rssi-value">0</span>
-                                    </div>
-                                    <div>
-                                        <span class="text-xs text-gray-200">SNR:</span>
-                                        <span id="snr-value">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Servo Controls Section -->
-                    <h4
-                        class="text-sm sm:text-md font-semibold text-gray-800 dark:text-white mt-4 sm:mt-6 mb-2 sm:mb-3">
-                        Servo
-                        Controls</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    <h3
+                        class="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white mt-1 sm:mt-2 mb-2 sm:mb-3">
+                        Valve States</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
                         <!-- Servo 1 Gauge -->
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4">
-                            <div id="main" style="width:100%;height:180px;"></div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-1 sm:p-2">
+                            <div id="main" class="h-50 md:h-56" style="width:100%;"></div>
                         </div>
 
                         <!-- Servo 2 Gauge -->
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4">
-                            <div id="main1" style="width:100%;height:180px;"></div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-1 sm:p-2">
+                            <div id="main1" class="h-50 md:h-56" style="width:100%; "></div>
+                        </div>
+                    </div>
+
+                    <div id="state0">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white sm:mt-4 ">Flight
+                            Telemetry
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                            <!-- Altitude Card -->
+                            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 sm:p-4 text-white">
+                                <div class="flex items-center justify-between">
+                                    <div class="min-w-0">
+                                        <p class="text-blue-100 text-xs sm:text-sm font-medium">Altitude</p>
+                                        <p id="altitude-value" class="text-xl sm:text-2xl font-bold truncate">0</p>
+                                        <p class="text-blue-100 text-xs">meters</p>
+                                    </div>
+                                    <svg class="w-6 h-6 sm:w-8 sm:h-8 text-blue-200 flex-shrink-0" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path d="M10 2L3 9h14l-7-7z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- GPS Coordinates -->
+                            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-4 text-white">
+                                <div>
+                                    <p class="text-green-100 text-xs sm:text-sm font-medium">GPS Position</p>
+                                    <p id="lat-value" class="text-xs sm:text-sm font-bold truncate">0.000000</p>
+                                    <p id="lon-value" class="text-xs sm:text-sm font-bold truncate">0.000000</p>
+                                    <p class="text-green-100 text-xs">lat, lon</p>
+                                </div>
+                            </div>
+
+                            <!-- Acceleration -->
+                            <div
+                                class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 sm:p-4 text-white">
+                                <div>
+                                    <p class="text-purple-100 text-xs sm:text-sm font-medium">Acceleration</p>
+                                    <p id="acc-value" class="text-xl sm:text-2xl font-bold">0.0</p>
+                                    <p class="text-purple-100 text-xs">m/s²</p>
+                                </div>
+                            </div>
+
+                            <!-- Euler Angles -->
+                            <div
+                                class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 sm:p-4 text-white">
+                                <div>
+                                    <p class="text-orange-100 text-xs sm:text-sm font-medium">Euler X/Y/Z</p>
+                                    <div class="flex space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold">
+                                        <span id="eu-x-value" class="truncate">0</span>
+                                        <span id="eu-y-value" class="truncate">0</span>
+                                        <span id="eu-z-value" class="truncate">0</span>
+                                    </div>
+                                    <p class="text-orange-100 text-xs">degrees</p>
+                                </div>
+                            </div>
+
+                            <!-- Position -->
+                            <div class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg p-3 sm:p-4 text-white">
+                                <div>
+                                    <p class="text-teal-100 text-xs sm:text-sm font-medium">Position X/Y</p>
+                                    <div class="flex space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold">
+                                        <span id="x-pos-value" class="truncate">0</span>
+                                        <span id="y-pos-value" class="truncate">0</span>
+                                    </div>
+                                    <p class="text-teal-100 text-xs">meters</p>
+                                </div>
+                            </div>
+
+                            <!-- Signal Quality -->
+                            <div class="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg p-3 sm:p-4 text-white">
+                                <div>
+                                    <p class="text-gray-100 text-xs sm:text-sm font-medium">Signal</p>
+                                    <div class="flex justify-between text-xs sm:text-sm font-bold">
+                                        <div>
+                                            <span class="text-xs text-gray-200">RSSI:</span>
+                                            <span id="rssi-value">0</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-xs text-gray-200">SNR:</span>
+                                            <span id="snr-value">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- State1: Ground test data (P1, P2, Load Cell) -->
-                <div id="state1"
+                <div
                     class="sm:w-full lg:basis-1/3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700">
 
                     <!-- System Info -->
@@ -351,62 +368,69 @@
                             </div>
                         </div>
                     </div>
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-3 sm:mb-4">Ground
-                        Test
-                        Data
-                    </h3>
-                    <!-- Pressure 1 -->
-                    <div
-                        class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-3 sm:p-4 text-white mb-3 sm:mb-4">
-                        <div class="flex items-center justify-between">
-                            <div class="min-w-0">
-                                <p class="text-red-100 text-xs sm:text-sm font-medium">Pressure 1</p>
-                                <p id="p1-value" class="text-2xl sm:text-3xl font-bold truncate">0.0</p>
-                                <p class="text-red-100 text-xs">PSI</p>
-                            </div>
-                            <div
-                                class="w-10 h-10 sm:w-12 sm:h-12 bg-red-400 rounded-full flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 012 0v4a1 1 0 11-2 0V9z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pressure 2 -->
-                    <div
-                        class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-3 sm:p-4 text-white mb-3 sm:mb-4">
-                        <div class="flex items-center justify-between">
-                            <div class="min-w-0">
-                                <p class="text-yellow-100 text-xs sm:text-sm font-medium">Pressure 2</p>
-                                <p id="p2-value" class="text-2xl sm:text-3xl font-bold truncate">0.0</p>
-                                <p class="text-yellow-100 text-xs">PSI</p>
-                            </div>
-                            <div
-                                class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 012 0v4a1 1 0 11-2 0V9z"></path>
-                                </svg>
+                    <div id="state1">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-3 sm:mb-4">Ground
+                            Test
+                            Data
+                        </h3>
+                        <!-- Pressure 1 -->
+                        <div
+                            class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-3 sm:p-4 text-white mb-3 sm:mb-4">
+                            <div class="flex items-center justify-between">
+                                <div class="min-w-0">
+                                    <p class="text-red-100 text-xs sm:text-sm font-medium">Pressure 1</p>
+                                    <p id="p1-value" class="text-2xl sm:text-3xl font-bold truncate">0.0</p>
+                                    <p class="text-red-100 text-xs">PSI</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 sm:w-12 sm:h-12 bg-red-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 012 0v4a1 1 0 11-2 0V9z">
+                                        </path>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Load Cell -->
-                    <div
-                        class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-3 sm:p-4 text-white mb-3 sm:mb-4">
-                        <div class="flex items-center justify-between">
-                            <div class="min-w-0">
-                                <p class="text-indigo-100 text-xs sm:text-sm font-medium">Load Cell</p>
-                                <p id="load-value" class="text-2xl sm:text-3xl font-bold truncate">0.0</p>
-                                <p class="text-indigo-100 text-xs">kg</p>
+                        <!-- Pressure 2 -->
+                        <div
+                            class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-3 sm:p-4 text-white mb-3 sm:mb-4">
+                            <div class="flex items-center justify-between">
+                                <div class="min-w-0">
+                                    <p class="text-yellow-100 text-xs sm:text-sm font-medium">Pressure 2</p>
+                                    <p id="p2-value" class="text-2xl sm:text-3xl font-bold truncate">0.0</p>
+                                    <p class="text-yellow-100 text-xs">PSI</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 012 0v4a1 1 0 11-2 0V9z">
+                                        </path>
+                                    </svg>
+                                </div>
                             </div>
-                            <div
-                                class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-400 rounded-full flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd"
-                                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                                        clip-rule="evenodd"></path>
-                                </svg>
+                        </div>
+
+                        <!-- Load Cell -->
+                        <div
+                            class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-3 sm:p-4 text-white mb-3 sm:mb-4">
+                            <div class="flex items-center justify-between">
+                                <div class="min-w-0">
+                                    <p class="text-indigo-100 text-xs sm:text-sm font-medium">Load Cell</p>
+                                    <p id="load-value" class="text-2xl sm:text-3xl font-bold truncate">0.0</p>
+                                    <p class="text-indigo-100 text-xs">KN</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                            clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -465,26 +489,42 @@
     var myChart = echarts.init(chartDom);
     window.myChart = myChart;
 
+    // Function to get gauge colors based on servo state
+    function getGaugeColors(servoState) {
+        if (servoState === 0) {
+            // Active state - Green colors
+            return [
+                [0.25, '#857367'],
+                [0.5, '#9a8579'],
+                [0.75, '#b0978b'],
+                [1, '#c5aa9d']
+            ];
+        } else {
+            // Inactive state - Red/Orange colors
+            return [
+                [0.25, '#7CFFB2'],
+                [0.5, '#58D9F9'],
+                [0.75, '#FDDD60'],
+                [1, '#FF6E76']
+            ];
+        }
+    }
+
     option = {
         series: [
             {
                 type: 'gauge',
                 startAngle: 180,
                 endAngle: 0,
-                center: ['50%', '75%'],
-                radius: '90%',
+                center: ['50%', '90%'],
+                radius: '180%',
                 min: 0,
                 max: 180,
                 splitNumber: 8,
                 axisLine: {
                     lineStyle: {
                         width: 5,
-                        color: [
-                            [0.25, '#FF6E76'],
-                            [0.5, '#FDDD60'],
-                            [0.75, '#58D9F9'],
-                            [1, '#7CFFB2']
-                        ]
+                        color: getGaugeColors(0) // Default to inactive
                     }
                 },
                 pointer: {
@@ -511,13 +551,13 @@
                     }
                 },
                 title: {
-                    offsetCenter: [0, '-10%'],
+                    offsetCenter: [0, '5%'],
                     fontSize: 20,
                     color: '#ffffff'  // White color for the title text
                 },
                 detail: {
                     fontSize: 30,
-                    offsetCenter: [0, '-35%'],
+                    offsetCenter: [0, '-20%'],
                     valueAnimation: true,
                     formatter: function (value) {
                         return Math.round(value) + '°';
@@ -552,20 +592,15 @@
                 type: 'gauge',
                 startAngle: 180,
                 endAngle: 0,
-                center: ['50%', '75%'],
-                radius: '90%',
+                center: ['50%', '90%'],
+                radius: '180%',
                 min: 0,
                 max: 180,
                 splitNumber: 8,
                 axisLine: {
                     lineStyle: {
                         width: 5,
-                        color: [
-                            [0.25, '#FF6E76'],
-                            [0.5, '#FDDD60'],
-                            [0.75, '#58D9F9'],
-                            [1, '#7CFFB2']
-                        ]
+                        color: getGaugeColors(0) // Default to inactive
                     }
                 },
                 pointer: {
@@ -592,28 +627,29 @@
                     }
                 },
                 title: {
-                    offsetCenter: [0, '-10%'],
-                    fontSize: 16,
-                    color: '#374151'
+                    offsetCenter: [0, '5%'],
+                    fontSize: 20,
+                    color: '#ffffff'  // White color for the title text
                 },
                 detail: {
-                    fontSize: 24,
-                    offsetCenter: [0, '-35%'],
+                    fontSize: 30,
+                    offsetCenter: [0, '-20%'],
                     valueAnimation: true,
                     formatter: function (value) {
                         return Math.round(value) + '°';
                     },
-                    color: '#374151'
+                    color: 'inherit'
                 },
                 data: [
                     {
-                        value: 0,
+                        value: 180,
                         name: 'Valve2',
                     }
                 ]
             }
         ]
     };
+
     myChart1.setOption(option1);
 
     // Function to update all telemetry displays
@@ -641,9 +677,15 @@
         document.getElementById('current-value').textContent = data.current.toFixed(2) + 'A';
         document.getElementById('record-sn-value').textContent = data.recordSn;
 
-        // Update servo gauges
+        // Update servo gauges with dynamic colors
         myChart.setOption({
             series: [{
+                axisLine: {
+                    lineStyle: {
+                        width: 5,
+                        color: getGaugeColors(data.servo1state)
+                    }
+                },
                 data: [{
                     value: data.servo1Angle,
                     name: 'Valve1'
@@ -653,6 +695,12 @@
 
         myChart1.setOption({
             series: [{
+                axisLine: {
+                    lineStyle: {
+                        width: 5,
+                        color: getGaugeColors(data.servo2state)
+                    }
+                },
                 data: [{
                     value: data.servo2Angle,
                     name: 'Valve2'
@@ -662,6 +710,38 @@
 
         // Update status indicators
         updateStatusIndicators(data);
+
+        // Update section visibility based on test mode
+        updateSectionVisibility(data.testMode);
+    }
+
+    function updateSectionVisibility(testMode) {
+        const mainTelemetrySection = document.getElementById('state0');
+        const groundTestSection = document.getElementById('state1');
+
+        if (testMode === 1) {
+            // Test mode ON: Dim main telemetry, highlight ground test
+            mainTelemetrySection.className = mainTelemetrySection.className.replace('section-active', 'section-dimmed');
+            if (!mainTelemetrySection.className.includes('section-dimmed')) {
+                mainTelemetrySection.className += ' section-dimmed';
+            }
+
+            groundTestSection.className = groundTestSection.className.replace('section-dimmed', 'section-active');
+            if (!groundTestSection.className.includes('section-active')) {
+                groundTestSection.className += ' section-active';
+            }
+        } else {
+            // Test mode OFF: Highlight main telemetry, dim ground test
+            mainTelemetrySection.className = mainTelemetrySection.className.replace('section-dimmed', 'section-active');
+            if (!mainTelemetrySection.className.includes('section-active')) {
+                mainTelemetrySection.className += ' section-active';
+            }
+
+            groundTestSection.className = groundTestSection.className.replace('section-active', 'section-dimmed');
+            if (!groundTestSection.className.includes('section-dimmed')) {
+                groundTestSection.className += ' section-dimmed';
+            }
+        }
     }
 
     function updateStatusIndicators(data) {
