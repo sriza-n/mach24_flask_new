@@ -670,6 +670,12 @@ def direct_home():
     logger.info(f"Home page accessed. Connection status: {connection_status}")
     return render_template('home.html')
 
+@app.route('/about')
+def about():
+    """Direct access to home page after loading."""
+    logger.info(f"Home page accessed. Connection status: {connection_status}")
+    return render_template('about.html')
+
 @app.route('/page/database')
 def database_page():
     """Render the database management page."""
@@ -872,12 +878,12 @@ def add_data():
         if not data:
             return jsonify({'success': False, 'message': 'No data provided'}), 400
         
-        # Validate required fields
+        # Validate required fields - updated to match new database schema
         required_fields = [
-            'teensytime', 'record_sn', 'voltage', 'current', 'teensytemp',
+            'teensytime', 'record_sn', 'voltage', 'current',
             'remote_st', 'valve_1', 'valve_2', 'activ_st', 'igni_st', 'para_st',
             'x_pos', 'y_pos', 'alt', 'eu_x', 'eu_y', 'eu_z',
-            'acc_x', 'acc_y', 'acc_z', 'lat', 'lon', 'snr', 'rssi'
+            'acc', 'lat', 'lon', 'snr', 'rssi'
         ]
         
         missing_fields = [field for field in required_fields if field not in data]
@@ -918,7 +924,6 @@ def add_data():
             'record_sn': data['record_sn'],
             'voltage': float(data['voltage']),
             'current': float(data['current']),
-            'teensytemp': float(data['teensytemp']),
             'remote_st': int(data['remote_st']),
             'valve_1': int(data['valve_1']),
             'valve_2': int(data['valve_2']),
@@ -931,15 +936,22 @@ def add_data():
             'eu_x': float(data['eu_x']),
             'eu_y': float(data['eu_y']),
             'eu_z': float(data['eu_z']),
-            'acc_x': float(data['acc_x']),
-            'acc_y': float(data['acc_y']),
-            'acc_z': float(data['acc_z']),
+            'acc': float(data['acc']),  # Changed from separate acc_x, acc_y, acc_z
             'lat': float(data['lat']),
             'lon': float(data['lon']),
             'fused_lat': fused_lat,
             'fused_lon': fused_lon,
             'rssi': float(data.get('rssi', 0.0)),  # Default to 0.0 if not provided
-            'snr': float(data.get('snr', 0.0))  
+            'snr': float(data.get('snr', 0.0)),
+            # New fields from updated database schema
+            'p1': float(data.get('p1', 0.0)),
+            'p2': float(data.get('p2', 0.0)),
+            'load': float(data.get('load', 0.0)),
+            'servo1_angle': int(data.get('servo1_angle', 0)),
+            'servo2_angle': int(data.get('servo2_angle', 0)),
+            'config_mode': int(data.get('config_mode', 0)),
+            'test_mode': int(data.get('test_mode', 0)),
+            'connection_state': int(data.get('connection_state', 0))
         }
         
         # Determine which table to use based on igni_st value (similar to serial logic)
