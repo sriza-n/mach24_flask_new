@@ -794,10 +794,10 @@
         const testStatus = document.getElementById('test-status');
         if (data.testMode === 1) {
             testIndicator.className = 'w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center status-indicator mr-2';
-            testStatus.textContent = 'On';
+            testStatus.textContent = 'Ground Mode';
         } else {
             testIndicator.className = 'w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center status-indicator mr-2';
-            testStatus.textContent = 'Off';
+            testStatus.textContent = 'Flight Mode';
         }
 
         // Config mode
@@ -841,6 +841,7 @@
             }
         }
     });
+    
 </script>
 
 </html>

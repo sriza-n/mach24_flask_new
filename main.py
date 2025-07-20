@@ -29,6 +29,10 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SECRET_KEY'] = 'mach24_secret_key'
 
+# Set default SQLAlchemy configuration to suppress warnings
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # Temporary, will be overridden
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -73,10 +77,12 @@ def initialize_database(db_filename=None):
     if db_filename:
         # Use specified database file
         database_path = os.path.join(database_dir, db_filename)
-        if not os.path.exists(database_path):
-            logger.error(f"Database file not found: {db_filename}")
-            return False
-        logger.info(f"Using existing database: {db_filename}")
+        
+        # Check if it's an existing database or if we're creating a new one
+        if os.path.exists(database_path):
+            logger.info(f"Using existing database: {db_filename}")
+        else:
+            logger.info(f"Creating new database: {db_filename}")
     else:
         # Generate timestamp for database filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -89,14 +95,19 @@ def initialize_database(db_filename=None):
     current_database['path'] = database_path
     
     # Configure SQLAlchemy
-    # app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sensor_data.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Create all tables after configuring the database URI
+    with app.app_context():
+        db.create_all()
+        logger.info(f"Database tables created/verified for: {db_filename}")
     
     return True
 
+
 # Initialize with a new database by default
-initialize_database()
+# initialize_database()
 
 db = SQLAlchemy(app)
 
@@ -411,6 +422,12 @@ def send_data(data):
 def connect_to_serial():
     """Attempt to connect to an available serial port."""
     global ser, connection_status, connection_message
+    
+    # Close existing connection if any
+    if ser and ser.is_open:
+        ser.close()
+        ser = None
+    
     ports = list(serial.tools.list_ports.comports())
     if not ports:
         connection_status = "retrying"
@@ -420,15 +437,30 @@ def connect_to_serial():
         
     for port in ports:
         try:
-            ser = serial.Serial(port.device, 115200, timeout=1)
+            # Test the connection
+            test_ser = serial.Serial(port.device, 115200, timeout=1)
+            
+            # If successful, assign to global ser
+            ser = test_ser
             connection_status = "connected"
             connection_message = f"Connected to {port.device}"
-            logger.info(f"Connected to {port.device}")
+            logger.info(f"Successfully connected to {port.device}")
             return True
+            
         except serial.SerialException as e:
             logger.error(f"Error opening serial port {port.device}: {e}")
-            if hasattr(e, 'errno') and e.errno == 13:
-                logger.error("Permission denied. Try running as administrator.")
+            if "PermissionError" in str(e) or "Access is denied" in str(e):
+                logger.warning(f"Permission denied for {port.device}. Port may be in use by another application.")
+                # Don't treat permission errors as connection failures if we're already receiving data
+                # Check if this might be a case where we're already connected
+                if ser and ser.is_open and ser.port == port.device:
+                    connection_status = "connected"
+                    connection_message = f"Already connected to {port.device}"
+                    return True
+            continue
+        except Exception as e:
+            logger.error(f"Unexpected error opening {port.device}: {e}")
+            continue
     
     connection_status = "retrying"
     connection_message = "Failed to connect to any available ports"
@@ -542,15 +574,23 @@ def filter_message(message):
         with app.app_context():
             db.session.rollback()
 
+data_acquisition_mode = "serial"  # "serial" or "wireless"
+selected_database = None
+
 def serial_communication():
     """Main serial communication loop."""
     global ser, connection_status
+    
+    # Only run serial communication if mode is set to serial
+    if data_acquisition_mode != "serial":
+        logger.info(f"Data acquisition mode is set to '{data_acquisition_mode}'. Serial communication disabled.")
+        return
     
     logger.info("Starting serial communication thread")
     
     while True:
         # If not connected, try to connect
-        if ser is None:
+        if ser is None or not ser.is_open:
             logger.info("Attempting to connect to serial port...")
             
             if not connect_to_serial():
@@ -558,16 +598,17 @@ def serial_communication():
                 time.sleep(5)  # Wait before retrying
                 continue
                 
-            logger.info(f"Connection status: {connection_status}, {connection_message}")
+            # Only log once when successfully connected
+            if connection_status == "connected":
+                logger.info(f"Successfully connected: {connection_message}")
 
         # Read from serial port
         try:
-            if ser.in_waiting:
+            if ser and ser.is_open and ser.in_waiting:
                 raw_data = ser.readline()
                 if raw_data:
                     # Process the data
                     message = raw_data.decode('utf-8', errors='ignore').strip()
-                    # logger.debug(f"Received: {message}")
                     print(f"Received: {message}")
                     filter_message(message)
             else:
@@ -579,37 +620,60 @@ def serial_communication():
         except serial.SerialException as e:
             logger.error(f"Serial error: {e}")
             close_serial()
+            # Add a small delay before attempting to reconnect
+            time.sleep(2)
         except Exception as e:
             logger.error(f"Unexpected error in serial communication: {e}")
             close_serial()
+            # Add a small delay before attempting to reconnect
+            time.sleep(2)
 
 
 
 # ========= Routes =========
 
-@app.route('/loading')
+@app.route('/')
 def loading_screen():
     """Display a loading screen before launching the app."""
-    return render_template('loading.html')
-
-@app.route('/reset_loading')
-def reset_loading():
-    """Reset the loading screen flag (for testing)."""
-    response = redirect('/loading')
+    response = render_template('loading.html')
+    # Clear any existing app state cookies
+    response = app.response_class(response)
     response.set_cookie('app_loaded', '', expires=0)
     return response
 
-@app.route('/')
-def index():
-    """Render the main index page or redirect to loading screen on first visit."""
-    # Check if this is first visit
-    first_visit = request.cookies.get('app_loaded') != 'true'
+# @app.route('/reset_loading')
+# def reset_loading():
+#     """Reset the loading screen flag (for testing)."""
+#     response = redirect('/loading')
+#     response.set_cookie('app_loaded', '', expires=0)
+#     return response
+
+# @app.route('/')
+# def index():
+#     """Render the main index page or redirect to loading screen on every reload."""
+#     # Check if this is first visit
+#     response = redirect('/reset_loading')
+#     response.set_cookie('app_loaded', '', expires=0)
+#     first_visit = request.cookies.get('app_loaded') != 'true'
     
-    if first_visit:
-        return redirect('/loading')
+#     if first_visit:
+#         return redirect('/loading')
     
-    logger.info(f"Index page accessed. Connection status: {connection_status}")
+#     logger.info(f"Index page accessed. Connection status: {connection_status}")
+#     return render_template('home.html')
+
+
+
+@app.route('/home')
+def direct_home():
+    """Direct access to home page after loading."""
+    logger.info(f"Home page accessed. Connection status: {connection_status}")
     return render_template('home.html')
+
+@app.route('/page/database')
+def database_page():
+    """Render the database management page."""
+    return render_template('database.html')
 
 @app.route('/page/home')
 def home_page():
@@ -636,8 +700,15 @@ def dashboard_page():
         return f"Error loading visualization: {str(e)}", 500
     
 @app.route('/page/dash2')
-def settings_page():
-    return render_template('dash2.html')
+def groundtest_page():
+    """Render the data visualization page."""
+    try:
+        records = SensorData.query.order_by(SensorData.id.desc()).all()
+        data = [record.to_dict() for record in records]
+        return render_template('dash2.html', data=data)
+    except Exception as e:
+        logger.error(f"Error in visualize_data: {e}")
+        return f"Error loading visualization: {str(e)}", 500
 
 @app.route('/page/dash3', methods=['GET'])
 def visualize_data():
@@ -672,27 +743,28 @@ def stream_data():
         logger.error(f"Error in stream_data: {e}")
         return f"Error loading stream page: {str(e)}", 500
 
-@app.route('/latest_data', methods=['GET'])
-def latest_data_route():
-    """API endpoint to get the latest sensor data."""
-    try:
-        # Return the cached latest data if available
-        if latest_data:
-            return jsonify([latest_data]), 200
+# @app.route('/latest_data', methods=['GET'])
+# def latest_data_route():
+#     """API endpoint to get the latest sensor data."""
+#     try:
+#         # Return the cached latest data if available
+#         if latest_data:
+#             return jsonify([latest_data]), 200
             
-        # Otherwise retrieve from database
-        records = SensorData.query.order_by(SensorData.id.desc()).limit(1).all()
-        data = [record.to_dict() for record in records]
-        return jsonify(data), 200
-    except Exception as e:
-        logger.error(f"Error in latest_data: {e}")
-        return jsonify({"error": str(e)}), 500
+#         # Otherwise retrieve from database
+#         records = SensorData.query.order_by(SensorData.id.desc()).limit(1).all()
+#         data = [record.to_dict() for record in records]
+#         return jsonify(data), 200
+#     except Exception as e:
+#         logger.error(f"Error in latest_data: {e}")
+#         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/latest_sw', methods=['GET'])
 def latest_switch_state():
     """API endpoint to get the latest switch state data."""
     try:
-        # Query the most recent switch state record
+        # Always query the database instead of relying on cached data
         latest_switch = SwitchState.query.order_by(SwitchState.id.desc()).limit(1).first()
         
         if latest_switch:
@@ -703,6 +775,7 @@ def latest_switch_state():
     except Exception as e:
         logger.error(f"Error in latest_switch_state: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/serial_status', methods=['GET'])
@@ -974,7 +1047,6 @@ def switch_database(filename):
     except Exception as e:
         logger.error(f"Error switching database: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-    
 
 @app.after_request
 def add_headers(response):
@@ -987,29 +1059,247 @@ def add_headers(response):
 
 # ========= Main Entry Point =========
 
+def display_banner():
+    """Display the ASCII art banner."""
+    print("\n" * 2)
+    print("███╗   ███╗ █████╗  ██████╗██╗  ██╗  ██████╗ ██╗  ██╗")
+    print("████╗ ████║██╔══██╗██╔════╝██║  ██║  ╚════██╗██║  ██║")
+    print("██╔████╔██║███████║██║     ███████║  █████╔╝ ███████║")
+    print("██║╚██╔╝██║██╔══██║██║     ██╔══██║  ██╔═══╝ ╚════██║")
+    print("██║ ╚═╝ ██║██║  ██║╚██████╗██║  ██║  ███████╗     ██║")
+    print("╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝  ╚══════╝     ╚═╝")
+    print()
+    print(" ██████╗ ██████╗ ██████╗ ██╗████████╗ █████╗ ██╗     ███████╗")
+    print("██╔═══██╗██╔══██╗██╔══██╗██║╚══██╔══╝██╔══██╗██║     ██╔════╝")
+    print("██║   ██║██████╔╝██████╔╝██║   ██║   ███████║██║     ███████╗")
+    print("██║   ██║██╔══██╗██╔══██╗██║   ██║   ██╔══██║██║     ╚════██║")
+    print("╚██████╔╝██║  ██║██████╔╝██║   ██║   ██║  ██║███████╗███████║")
+    print(" ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝")
+    print()
+    print("                                               by Srijan Koju")
+    print()
+
+def setup_data_acquisition():
+    """Setup data acquisition mode selection."""
+    global data_acquisition_mode
+    
+    print("=" * 60)
+    print("DATA ACQUISITION MODE SELECTION")
+    print("=" * 60)
+    print("1. Serial Communication (USB/COM Port)")
+    print("2. Wireless Communication (Network/API)")
+    print("-" * 60)
+    
+    while True:
+        try:
+            choice = input("Select data acquisition mode (1-2): ").strip()
+            if choice == "1":
+                data_acquisition_mode = "serial"
+                print(f"✓ Selected: Serial Communication")
+                break
+            elif choice == "2":
+                data_acquisition_mode = "wireless"
+                print(f"✓ Selected: Wireless Communication")
+                break
+            else:
+                print("❌ Invalid choice. Please enter 1 or 2.")
+        except KeyboardInterrupt:
+            print("\n❌ Setup cancelled by user.")
+            exit(1)
+        except Exception as e:
+            print(f"❌ Error: {e}. Please try again.")
+
+def setup_database():
+    """Setup database selection or creation."""
+    global selected_database
+    
+    print("\n" + "=" * 60)
+    print("DATABASE SELECTION")
+    print("=" * 60)
+    
+    # Get available databases
+    available_dbs = get_available_databases()
+    
+    print("Available options:")
+    print("1. Create new database")
+    
+    if available_dbs:
+        print("2. Use existing database")
+        print("\nExisting databases:")
+        for i, db_file in enumerate(available_dbs, 1):
+            # Extract date/time info from filename for better display
+            if 'sensor_data_' in db_file:
+                timestamp_part = db_file.replace('sensor_data_', '').replace('.db', '')
+                try:
+                    # Parse timestamp: YYYYMMDD_HHMMSS
+                    if '_' in timestamp_part:
+                        date_part, time_part = timestamp_part.split('_')
+                        formatted_date = f"{date_part[:4]}-{date_part[4:6]}-{date_part[6:8]}"
+                        formatted_time = f"{time_part[:2]}:{time_part[2:4]}:{time_part[4:6]}"
+                        display_name = f"{formatted_date} {formatted_time}"
+                    else:
+                        display_name = timestamp_part
+                except:
+                    display_name = timestamp_part
+            else:
+                display_name = db_file.replace('.db', '')
+            
+            print(f"   {i}. {db_file} ({display_name})")
+    
+    print("-" * 60)
+    
+    while True:
+        try:
+            if available_dbs:
+                choice = input("Select option (1 for new, 2 for existing): ").strip()
+            else:
+                choice = input("No existing databases found. Press Enter to create new database: ").strip()
+                if choice == "":
+                    choice = "1"
+            
+            if choice == "1":
+                # Create new database
+                while True:
+                    db_name = input("Enter database name (or press Enter for auto-generated): ").strip()
+                    if db_name == "":
+                        # Auto-generate with timestamp - no need to set filename here
+                        print(f"✓ Will create auto-generated database")
+                        selected_database = None  # This will trigger auto-generation
+                        break
+                    else:
+                        # User provided name
+                        if not db_name.endswith('.db'):
+                            db_name += '.db'
+                        db_filename = db_name
+                        
+                        # Check if it already exists
+                        if db_filename in available_dbs:
+                            overwrite = input(f"Database '{db_filename}' already exists. Overwrite? (y/N): ").strip().lower()
+                            if overwrite in ['y', 'yes']:
+                                print(f"✓ Will overwrite existing database: {db_filename}")
+                                selected_database = db_filename
+                                break
+                            else:
+                                continue
+                        else:
+                            print(f"✓ Will create new database: {db_filename}")
+                            selected_database = db_filename
+                            break
+                
+                # Initialize the database
+                if not initialize_database(selected_database):
+                    print("❌ Failed to initialize database")
+                    continue
+                break
+                
+            elif choice == "2" and available_dbs:
+                # Use existing database
+                print("\nSelect existing database:")
+                for i, db_file in enumerate(available_dbs, 1):
+                    print(f"{i}. {db_file}")
+                
+                while True:
+                    try:
+                        db_choice = int(input(f"Enter database number (1-{len(available_dbs)}): ").strip())
+                        if 1 <= db_choice <= len(available_dbs):
+                            selected_database = available_dbs[db_choice - 1]
+                            print(f"✓ Selected existing database: {selected_database}")
+                            if not initialize_database(selected_database):
+                                print("❌ Failed to initialize database")
+                                continue
+                            break
+                        else:
+                            print(f"❌ Invalid choice. Please enter a number between 1 and {len(available_dbs)}.")
+                    except ValueError:
+                        print("❌ Invalid input. Please enter a number.")
+                    except KeyboardInterrupt:
+                        print("\n❌ Setup cancelled by user.")
+                        exit(1)
+                break
+            else:
+                print("❌ Invalid choice. Please try again.")
+                
+        except KeyboardInterrupt:
+            print("\n❌ Setup cancelled by user.")
+            exit(1)
+        except Exception as e:
+            print(f"❌ Error: {e}. Please try again.")
+
+
+def display_setup_summary():
+    """Display the final setup summary."""
+    print("\n" + "=" * 60)
+    print("SETUP SUMMARY")
+    print("=" * 60)
+    print(f"Data Acquisition Mode: {data_acquisition_mode.upper()}")
+    print(f"Database: {selected_database}")
+    print(f"Database Path: {current_database['path']}")
+    print("=" * 60)
+    print("✓ Setup completed successfully!")
+    print("🚀 Starting Mach24 server...")
+    print("-" * 60)
+    print("📡 Server will be available at:")
+    print("   • Local:    http://127.0.0.1:5000")
+    print("   • Local:    http://localhost:5000")
+    print("-" * 60)
+    print("📋 Available endpoints:")
+    print("   • Home:     http://127.0.0.1:5000/home")
+    print("   • Database: http://127.0.0.1:5000/page/database")
+    print("   • Dashboard: http://127.0.0.1:5000/page/dash1")
+    print("   • API Status: http://127.0.0.1:5000/serial_status")
+    print("=" * 60)
+
+def run_initial_setup():
+    """Run the complete initial setup process."""
+    try:
+        display_banner()
+        setup_data_acquisition()
+        setup_database()
+        display_setup_summary()
+        return True
+    except KeyboardInterrupt:
+        print("\n❌ Setup cancelled by user.")
+        return False
+    except Exception as e:
+        print(f"\n❌ Setup failed: {e}")
+        return False
+
+
+
 if __name__ == '__main__':
     try:
-                # ASCII Art Banner
-        # ASCII Art Banner
-        print("\n" * 2)
-        print("███╗   ███╗ █████╗  ██████╗██╗  ██╗  ██████╗ ██╗  ██╗")
-        print("████╗ ████║██╔══██╗██╔════╝██║  ██║  ╚════██╗██║  ██║")
-        print("██╔████╔██║███████║██║     ███████║  █████╔╝ ███████║")
-        print("██║╚██╔╝██║██╔══██║██║     ██╔══██║  ██╔═══╝ ╚════██║")
-        print("██║ ╚═╝ ██║██║  ██║╚██████╗██║  ██║  ███████╗     ██║")
-        print("╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝  ╚══════╝     ╚═╝")
-        print()
-        print(" ██████╗ ██████╗ ██████╗ ██╗████████╗ █████╗ ██╗     ███████╗")
-        print("██╔═══██╗██╔══██╗██╔══██╗██║╚══██╔══╝██╔══██╗██║     ██╔════╝")
-        print("██║   ██║██████╔╝██████╔╝██║   ██║   ███████║██║     ███████╗")
-        print("██║   ██║██╔══██╗██╔══██╗██║   ██║   ██╔══██║██║     ╚════██║")
-        print("╚██████╔╝██║  ██║██████╔╝██║   ██║   ██║  ██║███████╗███████║")
-        print(" ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝")
-        print()
-        serial_thread = threading.Thread(target=serial_communication, daemon=True)
-        serial_thread.start()
+        # Only run setup if this is not a reloader process
+        import os
+        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+            # Run initial setup only on the main process
+            if not run_initial_setup():
+                print("❌ Setup failed. Exiting...")
+                exit(1)
+        else:
+            # For reloader process, use the last known configuration
+            # Initialize with a default database if none exists
+            if not current_database['filename']:
+                available_dbs = get_available_databases()
+                if available_dbs:
+                    # Use the most recent database
+                    initialize_database(available_dbs[0])
+                    logger.info(f"Reloader: Using database {available_dbs[0]}")
+                else:
+                    # Create a new database
+                    initialize_database()
+                    logger.info("Reloader: Created new database")
+        
+        # Start serial thread only if in serial mode
+        if data_acquisition_mode == "serial":
+            serial_thread = threading.Thread(target=serial_communication, daemon=True)
+            serial_thread.start()
+            logger.info("Serial communication thread started")
+        else:
+            logger.info("Wireless mode selected - serial communication disabled")
+        
         logger.info("Starting Flask-SocketIO server on port 5000 (eventlet)")
-        socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+        # Disable reloader to prevent issues with global variables and database connections
+        socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
     except KeyboardInterrupt:
         logger.info("Server shutting down...")
         close_serial()
