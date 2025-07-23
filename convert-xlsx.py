@@ -2,10 +2,10 @@ import sqlite3
 import pandas as pd
 
 # Connect to the SQLite database
-conn = sqlite3.connect('sensor_data_20250527_134811.db')
+conn = sqlite3.connect('database/sensor_data_20250722_154154.db')
 
 # List of table names to export
-tables = ['sensor_data0', 'sensor_data']
+tables = ['sensor_data0', 'sensor_data', 'switch_state']
 
 # Create a Pandas Excel writer using XlsxWriter as the engine
 with pd.ExcelWriter('output.xlsx', engine='xlsxwriter') as writer:

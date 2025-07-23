@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mach24 Setup - Loading Screen</title>
+    <script src="{{ url_for('static', filename='lib/tailwind-browser.js') }}"></script>
+    <script src="static\lib\rive.js"></script>
+    <script src="{{ url_for('static', filename='lib/three.r134.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='lib/vanta.clouds.min.js') }}"></script>
+</head>
+
+<body class="w-screen h-screen bg-gray-900 overflow-hidden flex flex-col">
+    <div class="flex-1 relative" id="vanta-background">
+        <canvas class="w-full h-full object-contain relative z-10" id="canvas"></canvas>
+    </div>
+    <!-- <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+        <button id="triggerFly" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-colors duration-200">
+            Start
+        </button>
+    </div> -->
+</body>
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const visualizeButton = document.getElementById('visualizeButton');
+
+        // Initialize Vanta.js clouds background
+        let vantaEffect = VANTA.CLOUDS({
+            el: "#vanta-background",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            skyColor: 0x116898,
+            cloudColor: 0x919aaa,
+            cloudShadowColor: 0x41444d,
+            sunColor: 0xfc8500,
+            sunGlareColor: 0xff541c,
+            sunlightColor: 0xff9417,
+            speed: 1.40
+        });
+
+        let flyTrigger; // Rive fly trigger
+        window.rive.RuntimeLoader.setWasmUrl('/static/lib/rive.wasm');
+
+        try {
+            const r = new window.rive.Rive({
+                src: "/static/assets/mach24.riv",
+                canvas: document.getElementById("canvas"),
+                autoplay: true,
+                stateMachines: "State Machine 2",
+                onLoad: () => {
+                    r.resizeDrawingSurfaceToCanvas();
+                    const inputs = r.stateMachineInputs('State Machine 2');
+                    flyTrigger = inputs.find(i => i.name === 'fly'); // Assign flyTrigger here
+
+                    // Handle canvas resize
+                    window.addEventListener('resize', () => {
+                        r.resizeDrawingSurfaceToCanvas();
+                        if (vantaEffect) {
+                            vantaEffect.resize();
+                        }
+                    });
+
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                        if (vantaEffect) {
+                           vantaEffect.destroy();
+                        }
+                    }, 11000);
+                },
+                onLoadError: (err) => {
+                    console.error('Rive load error:', err);
+                }
+            });
+
+            //trigger button event listener
+            const triggerButton = document.getElementById('triggerFly');
+            if (triggerButton) {
+                triggerButton.addEventListener('click', () => {
+                    if (flyTrigger) {
+                        flyTrigger.fire();
+                    } else {
+                        console.error('flyTrigger is not defined');
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Rive initialization error:', err);
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (vantaEffect) {
+                vantaEffect.destroy();
+            }
+        });
+    });
+</script>
+
+</html>

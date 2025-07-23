@@ -1059,7 +1059,88 @@ def switch_database(filename):
     except Exception as e:
         logger.error(f"Error switching database: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+    
+import pandas as pd
+from io import BytesIO
+from flask import send_file
+import sqlite3
 
+@app.route('/convert_db_to_xlsx/<filename>', methods=['GET'])
+def convert_db_to_xlsx(filename):
+    """API endpoint to convert a database file to XLSX and download it."""
+    try:
+        # Validate filename
+        if not filename.endswith('.db'):
+            filename += '.db'
+        
+        available_dbs = get_available_databases()
+        if filename not in available_dbs:
+            return jsonify({
+                'success': False, 
+                'message': f"Database {filename} not found"
+            }), 404
+        
+        # Construct database path
+        db_path = os.path.join(database_dir, filename)
+        
+        # Connect to the specific database file
+        conn = sqlite3.connect(db_path)
+        
+        # Create a BytesIO object to store Excel file in memory
+        output = BytesIO()
+        
+        # List of tables to export
+        tables = ['sensor_data', 'sensor_data0', 'switch_state']
+        
+        # Create Excel writer
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            for table in tables:
+                try:
+                    # Check if table exists
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT name FROM sqlite_master 
+                        WHERE type='table' AND name=?
+                    """, (table,))
+                    
+                    if cursor.fetchone():
+                        # Query the database and load data into DataFrame
+                        query = f"SELECT * FROM {table}"
+                        df = pd.read_sql_query(query, conn)
+                        
+                        # Write DataFrame to Excel sheet
+                        df.to_excel(writer, sheet_name=table, index=False)
+                        logger.info(f"Exported table '{table}' with {len(df)} records")
+                    else:
+                        logger.warning(f"Table '{table}' not found in database {filename}")
+                        
+                except Exception as e:
+                    logger.error(f"Error exporting table '{table}': {e}")
+                    continue
+        
+        # Close database connection
+        conn.close()
+        
+        # Prepare the file for download
+        output.seek(0)
+        
+        # Generate download filename
+        xlsx_filename = filename.replace('.db', '.xlsx')
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=xlsx_filename
+        )
+        
+    except Exception as e:
+        logger.error(f"Error converting database to XLSX: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error converting database: {str(e)}'
+        }), 500
+    
 @app.after_request
 def add_headers(response):
     """Add security and cache headers to all responses."""
