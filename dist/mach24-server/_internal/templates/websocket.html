@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Real-Time Data</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Real-Time Data</h1>
+    <div>
+        <p>Connection Status: <span id="status">Connecting...</span></p>
+        <p>Last Updated: <span id="timestamp">Never</span></p>
+    </div>
+    <pre id="dataDisplay">Waiting for data...</pre>
+    
+    <script>
+        console.log('Initializing Socket.IO connection...');
+        const socket = io();
+        
+        socket.on('connect', function () {
+            console.log('Connected to WebSocket server');
+            document.getElementById('status').textContent = 'Connected';
+            document.getElementById('status').style.color = 'green';
+        });
+        
+        socket.on('disconnect', function () {
+            console.log('Disconnected from WebSocket server');
+            document.getElementById('status').textContent = 'Disconnected';
+            document.getElementById('status').style.color = 'red';
+        });
+        
+        socket.on('new_data', function (data) {
+            console.log('Received new_data:', data);
+            document.getElementById('dataDisplay').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+        });
+        
+        socket.on('connect_error', function (error) {
+            console.error('Connection error:', error);
+            document.getElementById('status').textContent = 'Connection Error';
+            document.getElementById('status').style.color = 'red';
+        });
+        
+        // Test connection every 5 seconds
+        setInterval(() => {
+            console.log('Socket connected:', socket.connected);
+        }, 5000);
+    </script>
+</body>
+</html>

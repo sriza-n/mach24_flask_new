@@ -1,16 +1,32 @@
-import eventlet
-eventlet.monkey_patch()
 """
 Mach24 Flask Application
 A Flask-based web application for sensor data collection and visualization.
 """
+
+# Critical: This must be the very first import and patch
+import eventlet
+eventlet.monkey_patch(all=True, thread=True, socket=True, os=True, select=True, time=True)
+
+# Additional eventlet configuration for PyInstaller
+import eventlet.hubs
+eventlet.hubs.use_hub('selects')  # Use selects hub which works better in PyInstaller
+
+# Suppress the eventlet RLock warning that can occur in PyInstaller builds
+import warnings
+warnings.filterwarnings("ignore", message=".*RLock.*were not greened.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="eventlet")
+warnings.filterwarnings("ignore", message=".*RLock.*")
+
+# Import standard library modules after monkey patching
 import os
 import json
 import time
 import logging
 import threading
+import webbrowser
 from datetime import datetime
 
+# Import third-party modules
 from flask import Flask, jsonify, render_template, Response, send_from_directory, redirect, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -347,11 +363,10 @@ class SwitchState(db.Model):
 with app.app_context():
     db.create_all()
 
-
-# processing xy to latlong
-# processing xy to latlong
+# Import pyproj after eventlet monkey patching and app setup
 from pyproj import Transformer, CRS
 
+# processing xy to latlong
 def xy_to_latlon(x_meters, y_meters, alt_meters, origin_lat, origin_lon):
     """
     Convert local X,Y coordinates (in meters) to lat/lon
@@ -1059,15 +1074,16 @@ def switch_database(filename):
     except Exception as e:
         logger.error(f"Error switching database: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-    
-import pandas as pd
-from io import BytesIO
-from flask import send_file
-import sqlite3
 
 @app.route('/convert_db_to_xlsx/<filename>', methods=['GET'])
 def convert_db_to_xlsx(filename):
     """API endpoint to convert a database file to XLSX and download it."""
+    # Import pandas modules only when needed to avoid conflicts with eventlet
+    import pandas as pd
+    from io import BytesIO
+    from flask import send_file
+    import sqlite3
+    
     try:
         # Validate filename
         if not filename.endswith('.db'):
@@ -1140,6 +1156,25 @@ def convert_db_to_xlsx(filename):
             'success': False,
             'message': f'Error converting database: {str(e)}'
         }), 500
+
+@app.route('/delete_database/<filename>', methods=['DELETE'])
+def delete_database(filename):
+    """API endpoint to delete a database file by filename."""
+    try:
+        # Ensure filename ends with .db
+        if not filename.endswith('.db'):
+            filename += '.db'
+        available_dbs = get_available_databases()
+        if filename not in available_dbs:
+            return jsonify({'success': False, 'message': f"Database {filename} not found"}), 404
+
+        db_path = os.path.join(database_dir, filename)
+        os.remove(db_path)
+        logger.info(f"Deleted database file: {filename}")
+        return jsonify({'success': True, 'message': f"Database {filename} deleted"}), 200
+    except Exception as e:
+        logger.error(f"Error deleting database: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
     
 @app.after_request
 def add_headers(response):
@@ -1358,6 +1393,20 @@ def run_initial_setup():
         return False
 
 
+def launch_browser():
+    """Launch browser after a short delay to ensure server is running"""
+    def open_browser():
+        time.sleep(1.5)  # Give the server time to start
+        url = "http://localhost:5000"
+        try:
+            webbrowser.open(url)
+            logger.info(f"Browser launched with URL: {url}")
+        except Exception as e:
+            logger.error(f"Failed to launch browser: {e}")
+    
+    browser_thread = threading.Thread(target=open_browser, daemon=True)
+    browser_thread.start()
+
 
 if __name__ == '__main__':
     try:
@@ -1390,9 +1439,12 @@ if __name__ == '__main__':
         else:
             logger.info("Wireless mode selected - serial communication disabled")
         
+        # Launch browser automatically
+        launch_browser()
+        
         logger.info("Starting Flask-SocketIO server on port 5000 (eventlet)")
         # Disable reloader to prevent issues with global variables and database connections
-        socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+        app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
     except KeyboardInterrupt:
         logger.info("Server shutting down...")
         close_serial()

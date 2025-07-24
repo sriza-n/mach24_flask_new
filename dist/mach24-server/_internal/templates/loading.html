@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mach24 Setup - Loading Screen</title>
+    <script src="{{ url_for('static', filename='lib/tailwind-browser.js') }}"></script>
+    <style>
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            object-fit: cover;
+            pointer-events: none; /* Prevent right-click on video */
+        }
+
+        .loading-progress {
+            position: relative;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .loading-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #f6ea3b, #f6b85c, #d4a406);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .loading-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .loading-text {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Disable text selection and right-click */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="w-screen h-screen bg-gray-900 overflow-hidden flex flex-col" 
+      oncontextmenu="return false;" 
+      ondragstart="return false;" 
+      onselectstart="return false;">
+    <!-- Background Video -->
+    <video class="video-background" autoplay muted loop 
+           controlslist="nodownload nofullscreen noremoteplayback" 
+           disablepictureinpicture
+           oncontextmenu="return false;">
+        <source src="{{ url_for('static', filename='assets/loading.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <!-- Spacer to push loading bar to bottom -->
+    <div class="flex-1"></div>
+
+    <!-- Loading Progress Bar - Fixed at bottom -->
+    <div class="w-full text-white p-6 pb-20" style="background: rgba(0, 0, 0, 0.068);">
+        <div class="text-center mb-4">
+            <span id="progressText" class="text-4xl font-semibold loading-text">0%</span>
+            <p id="loadingStatus" class="text-2xl opacity-70 mt-2 loading-text">Starting up...</p>
+        </div>
+        <div class="loading-progress h-3 w-full mb-4">
+            <div class="loading-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <script>
+                // Disable common shortcuts for downloading/saving
+        document.addEventListener('keydown', function(e) {
+            // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S
+            if (e.keyCode == 123 || 
+                (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || 
+                (e.ctrlKey && e.keyCode == 85) ||
+                (e.ctrlKey && e.keyCode == 83)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        // Loading progress simulation
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const loadingStatus = document.getElementById('loadingStatus');
+
+        const loadingSteps = [
+            { progress: 0, text: "Starting up..." },
+            { progress: 15, text: "Initializing database..." },
+            { progress: 30, text: "Loading configuration..." },
+            { progress: 45, text: "Connecting to serial port..." },
+            { progress: 60, text: "Setting up communication..." },
+            { progress: 75, text: "Loading interface..." },
+            { progress: 90, text: "Finalizing setup..." },
+            { progress: 100, text: "Ready!" }
+        ];
+
+        let currentStep = 0;
+
+        function updateProgress() {
+            if (currentStep < loadingSteps.length) {
+                const step = loadingSteps[currentStep];
+                progress = step.progress;
+
+                progressBar.style.width = progress + '%';
+                progressText.textContent = progress + '%';
+                loadingStatus.textContent = step.text;
+
+                currentStep++;
+
+                if (progress < 100) {
+                    // Calculate delay to spread loading over 11 seconds
+                    // Total steps = 8, so delay = 11000ms / 8 steps = ~1375ms per step
+                    const delay = 11000 / loadingSteps.length;
+                    setTimeout(updateProgress, delay);
+                } else {
+                    // Loading complete, redirect to home
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                    }, 1000);
+                }
+            }
+        }
+
+        // Start loading animation immediately with the video
+        setTimeout(updateProgress, 100);
+    </script>
+</body>
+
+</html>
