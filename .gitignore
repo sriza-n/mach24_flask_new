@@ -1,3 +1,17 @@
 # Virtual environment
 .venv/
 database/
+build/
+app/
+.github/
+_pycache__/
+dist/
+main_original_backup.py
+convert-xlsx.py
+main_simple.spec
+main.spec
+MODULAR_STRUCTURE.md
+README.md
+requirements.txt
+test_modular.py
+main_modular.py

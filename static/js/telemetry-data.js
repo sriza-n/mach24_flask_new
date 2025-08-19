@@ -85,7 +85,7 @@ class TelemetryDataManager {
             voltage: parseFloat(record.voltage) || 0,
             
             // Ground remote state connected or not
-            remoteSt: parseFloat(record.remote_st) || 0,
+            remoteSt: parseFloat(record.connection_state) || 0,
             // Activation state before ignition
             activSt: parseFloat(record.activ_st) || 0,
             // Ignition state

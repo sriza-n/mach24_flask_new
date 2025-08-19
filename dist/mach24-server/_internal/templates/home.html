@@ -70,6 +70,31 @@
                                 Mach24 Telemetry Dashboard
                             </h1>
                         </div>
+                        <!-- Tab Navigation -->
+                        <div class="flex items-center space-x-1">
+                            <nav class="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                                <button id="dashboard-tab"
+                                    class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm">
+                                    Dashboard
+                                </button>
+                                <a id="database-tab" href="/page/dash2"
+                                    class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    Ground test
+                                </a>
+                                <a id="database-tab" href="/page/dash1"
+                                    class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    3d plot
+                                </a>
+                                <a id="database-tab" href="/page/dash5"
+                                    class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    rocket model
+                                </a>
+                                <a id="database-tab" href="/page/database"
+                                    class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    Database
+                                </a>
+                            </nav>
+                        </div>
                         <div class="flex items-center space-x-2 sm:space-x-4">
                             <!-- Theme Toggle Button -->
                             <button id="theme-toggle"
@@ -420,7 +445,7 @@
                                 <div class="min-w-0">
                                     <p class="text-indigo-100 text-xs sm:text-sm font-medium">Load Cell</p>
                                     <p id="load-value" class="text-2xl sm:text-3xl font-bold truncate">0.0</p>
-                                    <p class="text-indigo-100 text-xs">KN</p>
+                                    <p class="text-indigo-100 text-xs">N</p>
                                 </div>
                                 <div
                                     class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-400 rounded-full flex items-center justify-center flex-shrink-0">
@@ -841,7 +866,7 @@
             }
         }
     });
-    
+
 </script>
 
 </html>

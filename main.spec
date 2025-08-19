@@ -98,7 +98,7 @@ hiddenimports.extend([
 ])
 
 a = Analysis(
-    ['main.py'],
+    ['main_original_backup.py'],
     pathex=[current_dir],
     binaries=[],
     datas=datas,

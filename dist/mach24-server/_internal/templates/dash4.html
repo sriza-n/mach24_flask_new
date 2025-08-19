@@ -4,7 +4,28 @@
 <head>
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.129/Build/Cesium/Cesium.js"></script>
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.129/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-    <!-- <link href="style.css" rel="stylesheet"> -->
+    <script src="{{ url_for('static', filename='lib/tailwind-browser.js') }}"></script>
+    <style>
+        * {
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+        }
+
+        html,
+        body {
+            height: 100vh !important;
+            width: 100vw !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        #cesiumContainer {
+            height: 100vh !important;
+            width: 100vw !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -125,7 +146,7 @@
                         lon: record.lon,
                         teensytime: record.teensytime
                     };
-                    
+
                     // Update current position
                     currentPosition = position;
                     console.log('Current Position:', currentPosition);
@@ -135,7 +156,7 @@
 
         // Start fetching data at regular intervals
         fetchDataInterval = setInterval(fetchData, 1000);
-        
+
         // Clean up intervals when page is closed
         window.addEventListener('beforeunload', () => {
             clearInterval(fetchDataInterval);
