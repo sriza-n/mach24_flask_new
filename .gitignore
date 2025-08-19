@@ -2,7 +2,6 @@
 .venv/
 database/
 build/
-app/
 .github/
 _pycache__/
 dist/
