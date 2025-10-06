@@ -23,7 +23,28 @@ A comprehensive Flask-based web application designed for real-time sensor data a
 - **Web-based Interface**: Modern, responsive UI built with Bootstrap and Tailwind CSS
 - **SocketIO Integration**: Real-time bidirectional communication between client and server
 
-## 📸 Screenshots
+## � Download
+
+### Standalone Executable (Windows)
+**Don't want to set up Python?** Download the pre-built executable version:
+
+**[⬇️ Download Mach24 Server v1.2 (ZIP)](https://github.com/sriza-n/mach24_flask_new/releases/download/v1.2/mach24-server.zip)**
+
+- **No Python installation required**
+- **No dependencies to install**
+- **Just extract and run**
+- Includes all necessary files and libraries
+- Perfect for quick deployment and testing
+
+**How to use:**
+1. Download and extract the ZIP file
+2. Run `mach24-server.exe`
+3. Follow the setup wizard
+4. Access the application at `http://localhost:5000`
+
+For the latest releases and changelog, visit the [Releases page](https://github.com/sriza-n/mach24_flask_new/releases).
+
+## �📸 Screenshots
 
 <div align="center">
 
